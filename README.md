@@ -120,6 +120,7 @@ $ :: End
 g :: Ctrl + Home (go to beginning of document)
 G :: Ctrl + End (go to end of document)
 v :: Highlight current line
+o :: Insert new line
 d :: Delete
 Backspace :: Ctrl + Delete
 ~~~
