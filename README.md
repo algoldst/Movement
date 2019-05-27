@@ -1,5 +1,6 @@
 # Movement
-AHK Script
+AHK Script. Install AutoHotKey to run the `.ahk` file, or download the .exe to run without installing.
+
 ### Administrative
 ~~~
 Left & Right Control :: Suspend script temporarily
