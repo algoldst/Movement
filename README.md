@@ -88,8 +88,8 @@ Type the part on the right to get the symbol on the left.
 ö :: ""o
 ü :: ""u
 ñ :: ~~n
-¡ :: \!!
-¿ :: \??
+¡ :: CapsLock + 1
+¿ :: CapsLock + /
 
 ~~~
 
