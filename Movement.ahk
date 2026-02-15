@@ -1,3 +1,5 @@
+﻿; Warning: Make sure to save as UTF-8 with BOM! Regular UTF-8 encodings (without BOM) will be read as ANSI and not work properly.
+
 ; ~~~~~~~~~~~~
 ; INTRODUCTION
 ; ~~~~~~~~~~~~
@@ -154,13 +156,6 @@
 ; ####
 ; Init
 ; ####
-; For F1 Exclusions
-GroupAdd, Helps , ahk_exe WINWORD.EXE
-GroupAdd, Helps , ahk_exe EXCEL.EXE 
-GroupAdd, Helps , ahk_exe POWERPNT.EXE
-GroupAdd, Helps , ahk_exe notepad.exe
-GroupAdd, Helps , ahk_class WorkerW 
-GroupAdd, Helpls, ahk_class CabinetWClass
 
 ; Minimize ScreenRotate App at Startup
 WinWait , Screen Rotate , , 10 ;Waits 10 seconds for window to appear before timeout
@@ -360,6 +355,7 @@ return
 :?*:`\heart::💗
 :?*:`\lit::🔥
 :?*:`\smile::😊
+:?*:`\ref::↗
 
 #IfWinNotActive
 
@@ -450,6 +446,16 @@ VB0 B[0] 0 pulse(0 5 1m 100p 100p 2m 4m)
 ; References the value of the cell immediately above current.
 ::`\=IND::=INDIRECT( ADDRESS( ROW( ) - 1 , COLUMN( ) ) )
 
+
+; ########
+; Window Switching
+#o::
+SetTitleMatchMode, RegEx
+InputBox, winTitle, Switch windows, Enter a window title.,, 300, 125
+WinActivate, i)\Q%winTitle%\E
+Return
+
+
 ; ########
 ; CAPSLOCK
 ; ########
@@ -459,8 +465,27 @@ VB0 B[0] 0 pulse(0 5 1m 100p 100p 2m 4m)
     ; Using "AlwaysOff" keeps CapsLock + [any unassigned key] from turning on CapsLock
     ; CapsLock would otherwise turn on from any combination not explicitly assigned
 SetCapsLockState, AlwaysOff
-CapsLock::SetCapsLockState, AlwaysOff
-;return
+
+; Tilde ~ allows this CapsLock hotkey to run, even if another hotkey is matched later
+; E.g. If you hold CapsLock and then press "k", without ~ would cause the Caps+K script to run, but not this one.
+; This would only kick off when you release Caps, bc AHK needs to confirm that no other hotkey was matched.
+; Whereas, with the ~, this script will run immediately on CapsLock down. Pressing a matching hotkey combo like "k"
+; causes a branch to that hotkey script; then, when it's finished executing, returns to here.
+; It's kinda like programming and having the stack call another function, and then return.
+~CapsLock::
+SetCapsLockState, AlwaysOff
+timeSinceCapsDown := A_TickCount
+; Wait until capslock is released
+Keywait, CapsLock
+; After Keywait, A_ThisHotkey will either be "~CapsLock", or some other combo (e.g. "CapsLock + k")
+mostRecentHotkeyExecuted := A_ThisHotkey
+If (A_TickCount - timeSinceCapsDown < 150) && (mostRecentHotkeyExecuted = "~CapsLock")
+; Only sends Escape if recent (< 150ms) capslock press, and we didn't trigger any other hotkey combo
+Send, {Escape}
+Return
+
+Send, {Escape}
+return
 
 ; Ctrl + CapsLock toggles actual CapsLock
 ^CapsLock::
@@ -478,11 +503,11 @@ CapsLock & l::
 Send, {Right}
 return
 CapsLock & j::
-Send {Down}
+SendPlay, {Down}
 return
 CapsLock & k::
-Send {Up}
-return
+SendPlay, {Up}
+return 
 
 ; Capslock w,b,0,$,g --> VIM
 CapsLock & 0::
@@ -504,6 +529,7 @@ Send ^{Home}
 CapsLock & v::
 Send, {Home}+{End}
 return
+
 #if Getkeystate("Shift","p") ;if shift is held the following hotkey is active.
 CapsLock & h::
 Send, +{Left}
@@ -512,10 +538,10 @@ CapsLock & l::
 Send, +{Right}
 return
 CapsLock & j::
-Send, +{Down}
+SendPlay, +{Down}
 return
 CapsLock & k::
-Send, +{Up}
+SendPlay, +{Up}
 return
 CapsLock & 0::
 Send +{Home}
@@ -531,6 +557,10 @@ Send ^+{Right}
 return
 CapsLock & g::
 Send ^+{End}
+return
+
+CapsLock & v::
+Send, {Home}{Home}{ShiftDown}{End}{End}{ShiftUp}
 return
 
 ; Shift + Caps + O :: Insert Line Below
@@ -577,10 +607,25 @@ return
 #IfWinActive
 
 ; Disable F1 Help
+; For F1 Exclusions
+GroupAdd, Helps , ahk_exe WINWORD.EXE
+GroupAdd, Helps , ahk_exe EXCEL.EXE 
+GroupAdd, Helps , ahk_exe POWERPNT.EXE
+GroupAdd, Helps , ahk_exe notepad.exe
+GroupAdd, Helps , ahk_class WorkerW 
+GroupAdd, Helpls, ahk_class CabinetWClass
+
 #IfWinActive , ahk_group Helps 
 F1::
 return
 #IfWinActive
+
+; Shortcut top open Obsidian
+; Note: AHK put flags before a close-parenthesis. i = case-insensitive
+!o::
+SetTitleMatchMode, RegEx
+WinActivate, i).* Obsidian .*
+Return
 
 ; Win+C opens Shift+RClick Context Menu
 #IfWinActive ahk_class CabinetWClass  ; for use in explorer.
@@ -631,10 +676,10 @@ return
 
 >!Space::Media_Play_Pause
 return
->^Right::Media_Next
->^Left::Media_Prev
->^Up::Volume_Up
->^Down::Volume_Down
+>!Right::Media_Next
+>!Left::Media_Prev
+>!Up::Volume_Up
+>!Down::Volume_Down
 
 ; Show/hide persistent volume control panel
 #Break::
@@ -760,6 +805,8 @@ return
 ; #If penScrollActive
 ; LButton::Return
 
+; Blackout Screen
+#b::Run, cmd /c scrnsave.scr /s
 
 
 ; CHANGELOG:
@@ -776,3 +823,4 @@ return
 
 ; 1.5:
 ; F1 Help disabled in Notepad, Excel, Word, Powerpoint, and Explorer
+
