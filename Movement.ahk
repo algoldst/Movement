@@ -497,17 +497,27 @@ return
 
 ; CapsLock + hjkl --> VIM hjkl
 CapsLock & h::
-Send, {Left}
-return
+	Send, {Left}
+	return
 CapsLock & l::
-Send, {Right}
-return
+	Send, {Right}
+	return
 CapsLock & j::
-SendPlay, {Down}
-return
+	if WinActive("ahk_exe ONENOTE.EXE") {
+		SendPlay, {Down}
+	}
+	else {
+		Send, {Down}
+	}
+	return
 CapsLock & k::
-SendPlay, {Up}
-return 
+	if WinActive("ahk_exe ONENOTE.EXE") {
+		SendPlay, {Up}
+	}
+	else {
+		Send, {Up}
+	}
+	return 
 
 ; Capslock w,b,0,$,g --> VIM
 CapsLock & 0::
@@ -538,11 +548,21 @@ CapsLock & l::
 Send, +{Right}
 return
 CapsLock & j::
-SendPlay, +{Down}
-return
+	if WinActive("ahk_exe ONENOTE.EXE") {
+		SendPlay, +{Down}
+	}
+	else {
+		Send, +{Down}
+	}
+	return
 CapsLock & k::
-SendPlay, +{Up}
-return
+	if WinActive("ahk_exe ONENOTE.EXE") {
+		SendPlay, +{Up}
+	}
+	else {
+		Send, +{Up}
+	}
+	return 
 CapsLock & 0::
 Send +{Home}
 return
