@@ -449,11 +449,11 @@ VB0 B[0] 0 pulse(0 5 1m 100p 100p 2m 4m)
 
 ; ########
 ; Window Switching
-#o::
-SetTitleMatchMode, RegEx
-InputBox, winTitle, Switch windows, Enter a window title.,, 300, 125
-WinActivate, i)\Q%winTitle%\E
-Return
+;#o::
+;SetTitleMatchMode, RegEx
+;InputBox, winTitle, Switch windows, Enter a window title.,, 300, 125
+;WinActivate, i)\Q%winTitle%\E
+;Return
 
 
 ; ########
@@ -642,7 +642,7 @@ return
 
 ; Shortcut top open Obsidian
 ; Note: AHK put flags before a close-parenthesis. i = case-insensitive
-!o::
+#o::
 SetTitleMatchMode, RegEx
 WinActivate, i).* Obsidian .*
 Return
