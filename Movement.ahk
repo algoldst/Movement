@@ -640,12 +640,41 @@ F1::
 return
 #IfWinActive
 
-; Shortcut top open Obsidian
-; Note: AHK put flags before a close-parenthesis. i = case-insensitive
+; ----------------------------------------
+; Shortcut to open/cycle Obsidian windows
+
+; Cycles through all open Obsidian windows on repeated Win+O presses.
+; Uses the currently active window as the cursor -- if already in Obsidian, advance to next; otherwise go to first.
 #o::
-SetTitleMatchMode, RegEx
-WinActivate, i).* Obsidian .*
+SetTitleMatchMode, 2  ; Substring match -- "Obsidian" anywhere in the title
+WinGet, obsWins, List, Obsidian
+
+if (obsWins = 0)  ; No Obsidian windows open
+    return
+
+if (obsWins = 1) {  ; Only one -- just activate it
+    WinActivate, ahk_id %obsWins1%
+    return
+}
+
+; Find which Obsidian window (if any) is currently active
+WinGet, activeHWND, ID, A
+currentIdx := 0
+Loop, %obsWins% {
+    thisHWND := obsWins%A_Index%
+    if (thisHWND = activeHWND) {
+        currentIdx := A_Index
+        break
+    }
+}
+
+; Advance to next, wrapping around to 1 after the last
+nextIdx := (currentIdx = 0 || currentIdx >= obsWins) ? 1 : currentIdx + 1
+nextHWND := obsWins%nextIdx%
+WinActivate, ahk_id %nextHWND%
 Return
+
+; --------------------------------------
 
 ; Win+C opens Shift+RClick Context Menu
 #IfWinActive ahk_class CabinetWClass  ; for use in explorer.
