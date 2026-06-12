@@ -644,10 +644,11 @@ return
 ; Shortcut to open/cycle Obsidian windows
 
 ; Cycles through all open Obsidian windows on repeated Win+O presses.
-; Uses the currently active window as the cursor -- if already in Obsidian, advance to next; otherwise go to first.
+; Uses ahk_exe Obsidian.exe to match only real Obsidian windows (not Explorer, Git Bash, etc.).
+; Sorts by HWND so the order is stable (Z-order changes every time you activate a window,
+; which would cause ping-ponging between only 2 windows).
 #o::
-SetTitleMatchMode, 2  ; Substring match -- "Obsidian" anywhere in the title
-WinGet, obsWins, List, Obsidian
+WinGet, obsWins, List, ahk_exe Obsidian.exe
 
 if (obsWins = 0)  ; No Obsidian windows open
     return
@@ -657,20 +658,36 @@ if (obsWins = 1) {  ; Only one -- just activate it
     return
 }
 
+; Sort HWNDs for a stable cycle order (Z-order shifts on every activation)
+obsSorted := []
+Loop, %obsWins% {
+    obsSorted.Push(obsWins%A_Index% + 0)  ; +0 forces numeric
+}
+; Simple insertion sort (tiny list)
+Loop, % obsSorted.Length() - 1 {
+    i := A_Index + 1
+    val := obsSorted[i]
+    j := i - 1
+    while (j >= 1 && obsSorted[j] > val) {
+        obsSorted[j + 1] := obsSorted[j]
+        j--
+    }
+    obsSorted[j + 1] := val
+}
+
 ; Find which Obsidian window (if any) is currently active
 WinGet, activeHWND, ID, A
 currentIdx := 0
-Loop, %obsWins% {
-    thisHWND := obsWins%A_Index%
-    if (thisHWND = activeHWND) {
+Loop, % obsSorted.Length() {
+    if (obsSorted[A_Index] = activeHWND) {
         currentIdx := A_Index
         break
     }
 }
 
 ; Advance to next, wrapping around to 1 after the last
-nextIdx := (currentIdx = 0 || currentIdx >= obsWins) ? 1 : currentIdx + 1
-nextHWND := obsWins%nextIdx%
+nextIdx := (currentIdx = 0 || currentIdx >= obsSorted.Length()) ? 1 : currentIdx + 1
+nextHWND := obsSorted[nextIdx]
 WinActivate, ahk_id %nextHWND%
 Return
 
