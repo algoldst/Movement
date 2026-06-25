@@ -693,15 +693,21 @@ Return
 
 ; --------------------------------------
 
-; Win+C opens Shift+RClick Context Menu
+; Win+Period opens Shift+RClick Context Menu
 #IfWinActive ahk_class CabinetWClass  ; for use in explorer.
-#c::
+#.::
 Keywait, LWin
 Send, {Shift down}{AppsKey}{Shift up}
 ;Sleep, 50		; Uncomment these two lines to launch Cmder with Win+C
 ;Send, c		; The letter sent can be modified (eg. Send, p → Launch powershell here)
 return
 #IfWinActive
+
+; Win+C switches to cli-calc window if it exists
+#c::
+IfWinExist, cli-calc
+    WinActivate, cli-calc
+Return
 
 ; Always On Top: Win+Space
 #SPACE::  Winset, Alwaysontop, , A
