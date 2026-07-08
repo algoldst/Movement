@@ -161,6 +161,10 @@
 WinWait , Screen Rotate , , 10 ;Waits 10 seconds for window to appear before timeout
 PostMessage, 0x112, 0xF020,,, Screen Rotate ; 0x112 = WM_SYSCOMMAND, 0xF020 = SC_MINIMIZE
 
+; Obsidian MRU list -- must be initialized here (auto-execute section ends at first hotkey)
+obsidianMRU := []
+SetTimer, ObsMRU_Poll, 250
+
 ; ####
 ; Meta
 ; ####
@@ -643,10 +647,47 @@ return
 ; ----------------------------------------
 ; Shortcut to open/cycle Obsidian windows
 
+; --- Helper: remove a value from the MRU list ---
+obsMRU_Remove(hwnd) {
+    global obsidianMRU
+    Loop, % obsidianMRU.Length() {
+        if (obsidianMRU[A_Index] = hwnd) {
+            obsidianMRU.RemoveAt(A_Index)
+            return
+        }
+    }
+}
+
+; --- Helper: push a HWND to the front of the MRU list ---
+obsMRU_Touch(hwnd) {
+    global obsidianMRU
+    obsMRU_Remove(hwnd)
+    obsidianMRU.InsertAt(1, hwnd)
+}
+
+; --- Background timer: poll the active window and keep MRU in sync ---
+; Runs every 250 ms. Adds newly-focused Obsidian windows to the front of the list
+; and prunes HWNDs for windows that no longer exist.
+ObsMRU_Poll:
+    ; Prune dead windows
+    global obsidianMRU
+    i := obsidianMRU.Length()
+    while (i >= 1) {
+        if !WinExist("ahk_id " . obsidianMRU[i])
+            obsidianMRU.RemoveAt(i)
+        i--
+    }
+    ; If the currently active window is an Obsidian window, move it to front
+    WinGet, activeHWND, ID, A
+    WinGet, activeExe, ProcessName, ahk_id %activeHWND%
+    if (activeExe = "Obsidian.exe")
+        obsMRU_Touch(activeHWND)
+return
+
 ; Cycles through all open Obsidian windows on repeated Win+O presses.
 ; Uses ahk_exe Obsidian.exe to match only real Obsidian windows (not Explorer, Git Bash, etc.).
-; Sorts by HWND so the order is stable (Z-order changes every time you activate a window,
-; which would cause ping-ponging between only 2 windows).
+; Cycles in most-recently-used order: first press brings the previous Obsidian window,
+; successive presses walk further back through MRU history -- just like Alt+Tab.
 #o::
 WinGet, obsWins, List, ahk_exe Obsidian.exe
 
@@ -658,36 +699,34 @@ if (obsWins = 1) {  ; Only one -- just activate it
     return
 }
 
-; Sort HWNDs for a stable cycle order (Z-order shifts on every activation)
-obsSorted := []
+; Ensure MRU list contains every currently-open Obsidian window
+; (adds any that haven't been seen yet, appending at the end so known-recent stay first)
 Loop, %obsWins% {
-    obsSorted.Push(obsWins%A_Index% + 0)  ; +0 forces numeric
-}
-; Simple insertion sort (tiny list)
-Loop, % obsSorted.Length() - 1 {
-    i := A_Index + 1
-    val := obsSorted[i]
-    j := i - 1
-    while (j >= 1 && obsSorted[j] > val) {
-        obsSorted[j + 1] := obsSorted[j]
-        j--
+    hwnd := obsWins%A_Index% + 0
+    found := false
+    Loop, % obsidianMRU.Length() {
+        if (obsidianMRU[A_Index] = hwnd) {
+            found := true
+            break
+        }
     }
-    obsSorted[j + 1] := val
+    if !found
+        obsidianMRU.Push(hwnd)
 }
 
-; Find which Obsidian window (if any) is currently active
+; Find the currently active window in the MRU list
 WinGet, activeHWND, ID, A
 currentIdx := 0
-Loop, % obsSorted.Length() {
-    if (obsSorted[A_Index] = activeHWND) {
+Loop, % obsidianMRU.Length() {
+    if (obsidianMRU[A_Index] = activeHWND) {
         currentIdx := A_Index
         break
     }
 }
 
-; Advance to next, wrapping around to 1 after the last
-nextIdx := (currentIdx = 0 || currentIdx >= obsSorted.Length()) ? 1 : currentIdx + 1
-nextHWND := obsSorted[nextIdx]
+; Advance to next in MRU order, wrapping around
+nextIdx := (currentIdx = 0 || currentIdx >= obsidianMRU.Length()) ? 1 : currentIdx + 1
+nextHWND := obsidianMRU[nextIdx]
 WinActivate, ahk_id %nextHWND%
 Return
 
