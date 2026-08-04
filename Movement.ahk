@@ -373,18 +373,6 @@ return
 ; Macro Expansion
 ; ###############
 
-; Journal Date Breadcrumbs
-::`\dbc::
-today = %a_now%
-today += -1, days
-FormatTime, today, %today%, yyyy.MM.dd
-SendInput <<[[%today%]] | [[
-today = %a_now%
-today += 1, days
-FormatTime, today, %today%, yyyy.MM.dd
-SendInput %today%]]>>
-return
-
 ; Date
 ::`\td::
 SendInput %A_YYYY%.%A_MM%.%A_DD%
