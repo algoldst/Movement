@@ -626,8 +626,8 @@ d::
 Send {Delete}
 return
 
-; Delete word forward (r) = Ctrl+Delete
-r::
+; Delete word forward (f) = Ctrl+Delete
+f::
 Send ^{Delete}
 return
 
@@ -658,7 +658,6 @@ return
 ; Ctrl/Alt/Win combos are unaffected (see note above), so shortcuts still work.
 c::return
 e::return
-f::return
 m::return
 n::return
 q::return
