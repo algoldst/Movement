@@ -613,9 +613,12 @@ if (showInsertTooltip)
     ToolTip, -- INSERT --
 return
 
-; Undo (u)
+; Undo (u) / Redo (Shift+U)
 u::
 Send ^z
+return
++u::
+Send ^y
 return
 
 ; Delete char forward (d)
@@ -634,21 +637,34 @@ Backspace::
 Send ^{Backspace}
 return
 
+; Yank/copy (y) and paste (p)
+y::
+Send ^c
+return
+p::
+Send ^v
+return
+
+; Append: move right then enter insert mode (a)
+a::
+Send {Right}
+normalMode := 0
+if (showInsertTooltip)
+    ToolTip, -- INSERT --
+return
+
 ; --- Suppress all other typing in normal mode ---
 ; Unmapped letters and digits do nothing (real modal behavior).
 ; Ctrl/Alt/Win combos are unaffected (see note above), so shortcuts still work.
-a::return
 c::return
 e::return
 f::return
 m::return
 n::return
-p::return
 q::return
 s::return
 t::return
 x::return
-y::return
 z::return
 1::return
 2::return
