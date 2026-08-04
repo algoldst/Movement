@@ -157,6 +157,12 @@
 ; Init
 ; ####
 
+; VIM modal state: 1 = normal mode, 0 = insert mode
+normalMode := 1
+
+; Show "-- INSERT --" tooltip when entering insert mode? 1 = yes, 0 = no
+showInsertTooltip := 1
+
 ; Minimize ScreenRotate App at Startup
 WinWait , Screen Rotate , , 10 ;Waits 10 seconds for window to appear before timeout
 PostMessage, 0x112, 0xF020,,, Screen Rotate ; 0x112 = WM_SYSCOMMAND, 0xF020 = SC_MINIMIZE
@@ -465,31 +471,8 @@ VB0 B[0] 0 pulse(0 5 1m 100p 100p 2m 4m)
 ; ########
 ; Source of some of this: https://github.com/ThatOneCoder/ahk/blob/master/Wynshaft.ahk.txt
 
-; Disable CapsLock
-    ; Using "AlwaysOff" keeps CapsLock + [any unassigned key] from turning on CapsLock
-    ; CapsLock would otherwise turn on from any combination not explicitly assigned
+; Disable CapsLock (always keep it off at the OS level)
 SetCapsLockState, AlwaysOff
-
-; Tilde ~ allows this CapsLock hotkey to run, even if another hotkey is matched later
-; E.g. If you hold CapsLock and then press "k", without ~ would cause the Caps+K script to run, but not this one.
-; This would only kick off when you release Caps, bc AHK needs to confirm that no other hotkey was matched.
-; Whereas, with the ~, this script will run immediately on CapsLock down. Pressing a matching hotkey combo like "k"
-; causes a branch to that hotkey script; then, when it's finished executing, returns to here.
-; It's kinda like programming and having the stack call another function, and then return.
-~CapsLock::
-SetCapsLockState, AlwaysOff
-timeSinceCapsDown := A_TickCount
-; Wait until capslock is released
-Keywait, CapsLock
-; After Keywait, A_ThisHotkey will either be "~CapsLock", or some other combo (e.g. "CapsLock + k")
-mostRecentHotkeyExecuted := A_ThisHotkey
-If (A_TickCount - timeSinceCapsDown < 150) && (mostRecentHotkeyExecuted = "~CapsLock")
-; Only sends Escape if recent (< 150ms) capslock press, and we didn't trigger any other hotkey combo
-Send, {Escape}
-Return
-
-Send, {Escape}
-return
 
 ; Ctrl + CapsLock toggles actual CapsLock
 ^CapsLock::
@@ -499,125 +482,205 @@ else
     SetCapsLockState, AlwaysOff
 return
 
-; CapsLock + hjkl --> VIM hjkl
-CapsLock & h::
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+; VIM MODAL NAVIGATION
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+; Normal mode is active by default (normalMode = 1).
+; Press 'i' in normal mode to enter insert mode.
+; Press Escape or CapsLock in insert mode to return to normal mode.
+; In normal mode, CapsLock also acts as Escape.
+
+; --- Enter insert mode (only active in normal mode) ---
+#if normalMode
+i::
+    normalMode := 0
+    if (showInsertTooltip)
+        ToolTip, -- INSERT --
+    return
+#if
+
+; --- CapsLock: Escape equivalent in normal mode; exit insert mode in insert mode ---
+CapsLock::
+    SetCapsLockState, AlwaysOff
+    if (normalMode) {
+        Send, {Escape}
+    } else {
+        normalMode := 1
+        ToolTip,
+    }
+    return
+
+; --- Escape: always returns to normal mode (also passes Escape through in normal mode) ---
+$Escape::
+    if (!normalMode) {
+        normalMode := 1
+        ToolTip,
+    } else {
+        Send, {Escape}
+    }
+    return
+
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+; NORMAL MODE -- VIM hjkl and motion keys (plain keys, no CapsLock combo)
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+; NOTE ON MODIFIERS:
+;   Ctrl/Alt/Win combos are never bound below, so hotkeys like ^s (Ctrl+S),
+;   !Tab (Alt+Tab), #e (Win+E), etc. pass straight through in BOTH modes.
+;   AHK does not fire a plain key hotkey (e.g. s::) while Ctrl/Alt/Win is held,
+;   so those modifier combinations always work as normal.
+;   Tab, Enter, arrows, etc. are left unbound and also pass through.
+
+; --- All normal-mode keys live in ONE #If block. ---
+; Shifted variants use explicit +key:: hotkeys (reliable), rather than
+; detecting Shift via GetKeyState (which proved unreliable inside #If).
+#if normalMode
+
+; hjkl movement (plain = move, +Shift = select)
+h::
 	Send, {Left}
 	return
-CapsLock & l::
++h::
+	Send, +{Left}
+	return
+l::
 	Send, {Right}
 	return
-CapsLock & j::
-	if WinActive("ahk_exe ONENOTE.EXE") {
-		SendPlay, {Down}
-	}
-	else {
-		Send, {Down}
-	}
++l::
+	Send, +{Right}
 	return
-CapsLock & k::
-	if WinActive("ahk_exe ONENOTE.EXE") {
+j::
+	if WinActive("ahk_exe ONENOTE.EXE")
+		SendPlay, {Down}
+	else
+		Send, {Down}
+	return
++j::
+	if WinActive("ahk_exe ONENOTE.EXE")
+		SendPlay, +{Down}
+	else
+		Send, +{Down}
+	return
+k::
+	if WinActive("ahk_exe ONENOTE.EXE")
 		SendPlay, {Up}
-	}
-	else {
+	else
 		Send, {Up}
-	}
-	return 
+	return
++k::
+	if WinActive("ahk_exe ONENOTE.EXE")
+		SendPlay, +{Up}
+	else
+		Send, +{Up}
+	return
 
-; Capslock w,b,0,$,g --> VIM
-CapsLock & 0::
+; Line / document motions
+; 0 = start of line   |  Shift+0 = highlight to BEGINNING of document
+0::
 Send {Home}
 return
-CapsLock & $::
++0::
+Send ^+{Home}
+return
+; 4 = end of line     |  Shift+4 ($) = highlight to END of line
+4::
 Send {End}
 return
-CapsLock & b::
-Send ^{Left}
-return
-CapsLock & w::
-Send ^{Right}
-return
-CapsLock & g::
-Send ^{Home}
-
-; Highlighting
-CapsLock & v::
-Send, {Home}+{End}
-return
-
-#if Getkeystate("Shift","p") ;if shift is held the following hotkey is active.
-CapsLock & h::
-Send, +{Left}
-return
-CapsLock & l::
-Send, +{Right}
-return
-CapsLock & j::
-	if WinActive("ahk_exe ONENOTE.EXE") {
-		SendPlay, +{Down}
-	}
-	else {
-		Send, +{Down}
-	}
-	return
-CapsLock & k::
-	if WinActive("ahk_exe ONENOTE.EXE") {
-		SendPlay, +{Up}
-	}
-	else {
-		Send, +{Up}
-	}
-	return 
-CapsLock & 0::
-Send +{Home}
-return
-CapsLock & $::
++4::
 Send +{End}
 return
-CapsLock & b::
+; b/w = word left/right (Shift selects)
+b::
+Send ^{Left}
+return
++b::
 Send ^+{Left}
 return
-CapsLock & w::
+w::
+Send ^{Right}
+return
++w::
 Send ^+{Right}
 return
-CapsLock & g::
+; g = top of document  |  Shift+G = highlight to END of document
+g::
+Send ^{Home}
+return
++g::
 Send ^+{End}
 return
 
-CapsLock & v::
-Send, {Home}{Home}{ShiftDown}{End}{End}{ShiftUp}
+; Select current line (v) / whole line incl. wraps (V)
+v::
+Send, {Home}+{End}
+return
++v::
+Send {Shift Up}
+Send, {Home}{Home}{Shift Down}{End}{End}{Shift Up}
 return
 
-; Shift + Caps + O :: Insert Line Below
-CapsLock & o::
-Send {End}{Enter}
-return
-
-#if
-
-; Caps + O :: Insert Line
-CapsLock & o::
+; Insert line above (o) / below (Shift+O), then enter insert mode.
+; Shift is released first so {End}{Enter} isn't turned into Shift+End/Shift+Enter.
+o::
 Send {Home}{Enter}{Up}
+normalMode := 0
+if (showInsertTooltip)
+    ToolTip, -- INSERT --
+return
++o::
+Send {Shift Up}
+Send {End}{Enter}
+normalMode := 0
+if (showInsertTooltip)
+    ToolTip, -- INSERT --
 return
 
-; Remaps:
-CapsLock & u::
+; Undo (u)
+u::
 Send ^z
 return
 
-CapsLock & d::
+; Delete char forward (d)
+d::
 Send {Delete}
 return
 
-; Delete current word
-CapsLock & r::
-Send ^{Left}
-Send ^+{Right}
-Send {Delete}
-return
-
-CapsLock & Backspace::
+; Delete word forward (r) = Ctrl+Delete
+r::
 Send ^{Delete}
 return
+
+; Delete word backward (Backspace) = Ctrl+Backspace in normal mode.
+; In insert mode Backspace is unbound, so it behaves as a normal Backspace.
+Backspace::
+Send ^{Backspace}
+return
+
+; --- Suppress all other typing in normal mode ---
+; Unmapped letters and digits do nothing (real modal behavior).
+; Ctrl/Alt/Win combos are unaffected (see note above), so shortcuts still work.
+a::return
+c::return
+e::return
+f::return
+m::return
+n::return
+p::return
+q::return
+s::return
+t::return
+x::return
+y::return
+z::return
+1::return
+2::return
+3::return
+5::return
+6::return
+7::return
+8::return
+9::return
+
+#if
 
 ; ##############
 ; Administrative
