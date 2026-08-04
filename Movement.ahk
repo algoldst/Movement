@@ -394,15 +394,6 @@ return
 return
 
 ; LTSPICE Hotstrings
-; Voltage Traces
-::v(a[3])+ ::SendInput {Raw}1/5*(V(a[0]) + 2*V(a[1]) + 4*V(a[2]) + 8*V(a[3]))
-::v(a[7])+ ::SendInput {Raw}1/5*(V(a[0]) + 2*V(a[1]) + 4*V(a[2]) + 8*V(a[3]) + 16*V(a[4]) + 32*V(a[5]) + 64*V(a[6]) + 128*V(a[7]))
-
-::v(b[3])+ ::SendInput {Raw}1/5*(V(b[0]) + 2*V(b[1]) + 4*V(b[2]) + 8*V(b[3]))
-::v(b[7])+ ::SendInput {Raw}1/5*(V(b[0]) + 2*V(b[1]) + 4*V(b[2]) + 8*V(b[3]) + 16*V(b[4]) + 32*V(b[5]) + 64*V(b[6]) + 128*V(b[7]))
-
-::v(c[3])+ ::SendInput {Raw}1/5*(V(s[0]) + 2*V(s[1]) + 4*V(s[2]) + 8*V(s[3]))
-::v(c[7])+ ::SendInput {Raw}1/5*(V(s[0]) + 2*V(s[1]) + 4*V(s[2]) + 8*V(s[3]) + 16*V(s[4]) + 32*V(s[5]) + 64*V(s[6]) + 128*V(s[7]))
 
 ::`\ltlt::
 SendInput `
@@ -562,12 +553,12 @@ k::
 	return
 
 ; Line / document motions
-; 0 = start of line   |  Shift+0 = highlight to BEGINNING of document
+; 0 = start of line   |  Shift+0 = highlight to BEGINNING of line
 0::
 Send {Home}
 return
 +0::
-Send ^+{Home}
+Send +{Home}
 return
 ; 4 = end of line     |  Shift+4 ($) = highlight to END of line
 4::
