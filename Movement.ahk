@@ -489,14 +489,9 @@ CapsLock::
     }
     return
 
-; --- Escape: always returns to normal mode (also passes Escape through in normal mode) ---
+; --- Escape: sends literal Escape in insert mode; passes Escape through in normal mode ---
 $Escape::
-    if (!normalMode) {
-        normalMode := 1
-        ToolTip,
-    } else {
-        Send, {Escape}
-    }
+    Send, {Escape}
     return
 
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
