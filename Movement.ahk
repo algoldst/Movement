@@ -600,14 +600,14 @@ return
 ; Insert line above (o) / below (Shift+O), then enter insert mode.
 ; Shift is released first so {End}{Enter} isn't turned into Shift+End/Shift+Enter.
 o::
-Send {Home}{Enter}{Up}
+Send {Shift Up}
+Send {End}{Enter}
 normalMode := 0
 if (showInsertTooltip)
     ToolTip, -- INSERT --
 return
 +o::
-Send {Shift Up}
-Send {End}{Enter}
+Send {Home}{Enter}{Up}
 normalMode := 0
 if (showInsertTooltip)
     ToolTip, -- INSERT --
