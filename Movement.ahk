@@ -626,15 +626,18 @@ f::
 Send ^{Delete}
 return
 
-; Delete word backward (Backspace) = Ctrl+Backspace in normal mode.
-; In insert mode Backspace is unbound, so it behaves as a normal Backspace.
-Backspace::
+; Delete word backward (Backspace) = Backspace in normal mode.
+; In insert mode Backspace = Ctrl+Backspace.
++Backspace::
 Send ^{Backspace}
 return
 
-; Yank/copy (y) and paste (p)
+; Yank/copy (y), cut (x), paste (p)
 y::
 Send ^c
+return
+x::
+Send ^x
 return
 p::
 Send ^v
@@ -651,15 +654,15 @@ return
 ; --- Suppress all other typing in normal mode ---
 ; Unmapped letters and digits do nothing (real modal behavior).
 ; Ctrl/Alt/Win combos are unaffected (see note above), so shortcuts still work.
-c::return
-e::return
-m::return
-n::return
 q::return
-s::return
+e::return
+r::return
 t::return
-x::return
+s::return
 z::return
+c::return
+n::return
+m::return
 1::return
 2::return
 3::return
