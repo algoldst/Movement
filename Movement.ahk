@@ -474,7 +474,7 @@ return
 i::
     normalMode := 0
     if (showInsertTooltip)
-        ToolTip, -- INSERT --
+        ToolTip, ' I ', A_ScreenWidth, A_ScreenHeight
     return
 #if
 
@@ -599,13 +599,13 @@ Send {Shift Up}
 Send {End}{Enter}
 normalMode := 0
 if (showInsertTooltip)
-    ToolTip, -- INSERT --
+    ToolTip, ' I ', A_ScreenWidth, A_ScreenHeight
 return
 +o::
 Send {Home}{Enter}{Up}
 normalMode := 0
 if (showInsertTooltip)
-    ToolTip, -- INSERT --
+    ToolTip, ' I ', A_ScreenWidth, A_ScreenHeight
 return
 
 ; Undo (u) / Redo (Shift+U)
@@ -645,7 +645,7 @@ a::
 Send {Right}
 normalMode := 0
 if (showInsertTooltip)
-    ToolTip, -- INSERT --
+    ToolTip, ' I ', A_ScreenWidth, A_ScreenHeight
 return
 
 ; --- Suppress all other typing in normal mode ---
