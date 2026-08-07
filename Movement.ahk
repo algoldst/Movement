@@ -1,4 +1,9 @@
-﻿; Warning: Make sure to save as UTF-8 with BOM! Regular UTF-8 encodings (without BOM) will be read as ANSI and not work properly.
+#Requires AutoHotkey v2.0
+#SingleInstance Force
+
+; Encoding note (v2): AutoHotkey v2 reads script files as UTF-8 by default, so a
+; BOM is no longer strictly required. Saving as "UTF-8 with BOM" is still fine and
+; guarantees the special characters below are read correctly on all editors.
 
 ; ~~~~~~~~~~~~
 ; INTRODUCTION
@@ -6,350 +11,285 @@
 ; This script is a collection of keyboard shortcuts which helps with inserting commonly-used special
 ; characters (especially within STEM fields), and provides Vim-like navigation across the entire OS,
 ; as well as a collection of other utilities.
-
-; How to use this script:
-; This script is written in AutoHotKey (AHK).
+;
+; This script is written in AutoHotkey (AHK) v2. It was migrated from the original v1 version.
 ; Any script for AHK will be executable if you have AHK installed on your computer.
 ; Alternatively, AHK scripts can be compiled to executable, to be used on any computer.
-
+;
 ; This script is written by Alex Goldstein (algoldst), and is available to the public for free.
 ; It should not be sold.
 ; However, it can, and should, be modified to suit its users' needs.
 
 
 ; ~~~~~~~~~~~~~~~~~~~~~~
-; AUTOHOTKEY QUICK-START
+; AUTOHOTKEY QUICK-START (v2)
 ; ~~~~~~~~~~~~~~~~~~~~~~
 ; ##########
 ; Hotstrings
 ; ##########
 ; By far the most common in this script are hotstrings, which replace "hotstring" text with something else.
-; For example, a hotstring can be defined to replace the literal text
-;    \pi
-; with
-;    π.
-
-; The template for a hotstring is as follows:
-
+; For example, a hotstring can replace the literal text "\pi" with "π".
+;
+; The template for an auto-replace hotstring is:
 ;    ::X::Y
-;    return
-
-; where
-;    X       =  abbreviated string (key)
-;    Y       =  string to replace the key X
-;    return  =  signals the end of the hotstring
-
-; As an example, this script (without the semicolons and indentation):
-
-;    ::PI::π
-;    return
-
-; will cause an output "π" whenever the user types "PI" followed by a space.
-; Alternatively, the "return" can be omitted if the entire hotstring is only one line:
-
-;    ::PI::π
-
-; The above example accomplishes the same as the first.
-
+; where X = abbreviation (key) and Y = replacement text.
+; Example:  ::PI::π
+;
+; A hotstring that runs code (rather than replacing with static text) uses a block:
+;    ::X:: {
+;        ; ...code...
+;    }
 
 ; ###################
 ; Hotstring Modifiers
 ; ###################
-; It is possible, and recommended, to modify hotstrings beyond the basic X->Y format, in order to add
-; functionality and responsiveness.
-; Modifiers for hotstrings are placed in between first two semicolons, like so:
-
-;    :ZZZ:X::Y
-;    return
-
-; where Z = modifier(s)
-
-; For a list of all possible modifiers, check the AutoHotkey documentation.
-; This is a list of modifiers used within this script:
-
-;    C   |  Makes keys case-sensitive
-;    ?   |  Trigger AHK keys as parts of strings; for example, the key "PI" will be triggered by the string "HAPPINESS." Omitting "?" will only allow keys to be triggered as discrete strings (so that, in order to write "HAPπNESS", AHK would require you to type "HAP" {Space} "PI" {Space} "NESS")
-;    *   |  Trigger AHK keys immediately on typing. Default behavior necessitates typing "PI{Space}" before triggering; however, with "*", "PI" is a sufficient trigger without a space following it.
-;    O   |  Remove the trailing {Space} from AHK replacements. (Does not work in conjunction with *). For example, typing "PI{Space}" will output "π"; without the "O" modifier, "PI{Space}" will be replaced by "π ".
-
+; Modifiers go between the first two colons: :ZZZ:X::Y
+;    C   |  Case-sensitive keys
+;    ?   |  Trigger even when the abbreviation is inside another word
+;    *   |  Trigger immediately (no ending character such as Space needed)
+;    O   |  Omit the ending character from the replacement
 
 ; #######
-; Hotkeys
+; Hotkeys (v2)
 ; #######
-; Where hotstrings replace text, hotkeys respond to a combination of keyboard commands, such as Ctrl+Alt+Del.
-; Hotkeys follow the template:
-
-;    XX::
-;    YYYY
-;	 YYYY
-;    YYYY
-;    return
-
-; where
-;    XX     =  hotkey command combination
-;    YYYY   =  script to automate
-;    return =  signals the end of the hotkey (required)
-
-; As an example, the following script types the character "π" whenever the letter "Ctrl + e" is pressed:
-
-;    ^e::
-;    Send π
-;    return
-
-; Note that this is a very simple usage of hotkey scripts, which can do much more than simple text replacement.
-
-; Special keys can be represented by the following characters:
-;    ^  |  Ctrl
-;    !  |  Alt
-;    #  |  Win
-;    +  |  Shift
-
-; Therefore, instead of "e", we can use ^e, !e, or #e to create a hotkey for Ctrl+E, Alt+E, or Win+E.
+; Hotkeys respond to key combinations. Multi-line hotkeys use braces:
+;    XX:: {
+;        ; ...code...
+;    }
+; where XX = key combination. A single-line hotkey needs no braces:  ^e::Send("π")
+;
+; Special key symbols:
+;    ^ = Ctrl   ! = Alt   # = Win   + = Shift
 
 ; -------------------------------------------------------------
-; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 ; ~~~~~~~~~~~~~~~~
 ; COMMANDS
 ; ~~~~~~~~~~~~~~~~
 ;    Key    Replacement
 ;    \^(       |   ⁽
 ;    \^)       |   ⁾
-;    \^+       |   ⁺
-;    \^-       |   ⁻  (superscript minus)
-;    \^1       |   ¹
-;    \^2       |   ²
-;    \^3       |   ³
-;    \^4       |   ⁴
-;    \^5       |   ⁵
-;    \^6       |   ⁶
-;    \^7       |   ⁷
-;    \^8       |   ⁸
-;    \^9       |   ⁹
-;    \^0       |   ⁰
-;    \^x       |   ˣ
-;    \^y       |   ʸ
-;    \^n       |   ⁿ
-;    \PI       |   π
+;    \PI       |   π  (via Greek keyboard now)
 ;    \THT      |   θ
 ;    \DEG      |   °
 ;    \inf      |   ∞
-;     \mu      |   μ
-;   \lambda    |   λ
 ;    +-        |   ±
 ;    -+        |   ∓
 ;    \sqrt     |   √
-;   \sigma     |   Σ
-;   \integ     |   ∫
+;    \integ    |   ∫
 ;    \<=       |   ≤
 ;    \>=       |   ≥
 ;    \!=       |   ≠
 ;    \1/2      |   ½
-;    Alt+n     |   ñ
-; Suspend AHK  |  LeftCtrl + RightCtrl
+; Suspend AHK  |  LeftCtrl + RightCtrl  -or-  Shift + CapsLock
 
 ; ~~~~~~~~~~
 ; THE SCRIPT
 ; ~~~~~~~~~~
 
 ; ####
-; Init
+; Init (auto-execute section)
 ; ####
 
 ; VIM modal state: 1 = normal mode, 0 = insert mode
 normalMode := 1
 
-; Show "-- INSERT --" tooltip when entering insert mode? 1 = yes, 0 = no
-showInsertTooltip := 1
+; Show the blue screen border when entering insert mode? 1 = yes, 0 = no
+showInsertBorder := 1
+
+; Superscript/subscript cycling state for CapsLock+^
+superscripts := 0
+
+; ConEmu transparency toggle state
+isTransparent := 0
+
+; Insert-mode screen border settings (2px, blue)
+borderColor := "0000FF"
+borderThick := 2
+borderGuis  := []
+
+; Obsidian MRU list (most-recently-used window order)
+obsidianMRU := []
+
+; Keep CapsLock disabled at the OS level from the start.
+SetCapsLockState("AlwaysOff")
+
+; Build the (hidden) insert-mode border windows once at startup.
+InitBorder()
 
 ; Minimize ScreenRotate App at Startup
-WinWait , Screen Rotate , , 10 ;Waits 10 seconds for window to appear before timeout
-PostMessage, 0x112, 0xF020,,, Screen Rotate ; 0x112 = WM_SYSCOMMAND, 0xF020 = SC_MINIMIZE
+if WinWait("Screen Rotate", , 10)   ; Wait up to 10s for the window to appear
+    PostMessage(0x112, 0xF020, , , "Screen Rotate")  ; 0x112 = WM_SYSCOMMAND, 0xF020 = SC_MINIMIZE
 
-; Obsidian MRU list -- must be initialized here (auto-execute section ends at first hotkey)
-obsidianMRU := []
-SetTimer, ObsMRU_Poll, 250
+; Start the background poll that keeps the Obsidian MRU list in sync.
+SetTimer(ObsMRU_Poll, 250)
+
 
 ; ####
 ; Meta
 ; ####
-; To Suspend the script (such as in cases where you wish to type the literal "\sqrt", "\deg" etc.)
+; To Suspend the script (e.g. to type the literal "\sqrt", "\deg" etc.):
 ; Left Ctrl + Right Ctrl  -or-  Shift + CapsLock
+; #SuspendExempt keeps these hotkeys working WHILE suspended so you can resume.
+#SuspendExempt
 LCtrl & RCtrl::
-+CapsLock::
-    Suspend Toggle
++CapsLock:: {
+    Suspend(-1)   ; toggle
     if (A_IsSuspended)
-        SetCapsLockState, Off       ; let CapsLock work normally while suspended
+        SetCapsLockState("Off")       ; let CapsLock work normally while suspended
     else
-        SetCapsLockState, AlwaysOff ; re-disable CapsLock when resuming
-    Return
+        SetCapsLockState("AlwaysOff")  ; re-disable CapsLock when resuming
+}
 
 ; Reload the script after changing .ahk file: Win+`
 #`::Reload
-Return
+#SuspendExempt false
 
 
 ; ##################
 ; Unicode Characters
 ; ##################
 
-; Disable hotstring replacement script if current window is a code editor.
-; Replace / append with your code editor of choice (VSCode, Atom, etc).
-; Note: ahk_exe is required, not one of the code editors.
-#IfWinNotActive ahk_exe atom.exe
+; Disable hotstring replacement if the current window is a code editor (Atom shown as example).
+#HotIf !WinActive("ahk_exe atom.exe")
 
 ; Superscripts / Subscripts
-; Eg. 5^^(^^x^^+^^2^^) --> 5⁽ˣ⁺²⁾
-CapsLock & ^::
-	; Cycles through 0=off, 1=superscript, 2=subscript
-	; If this is the first run, variable has empty string value "". Convert to 0.
-	if(superscripts == "")
-		superscripts := 0
-	
-	; Increment superscripts, to cycle through 0,1,2
-	superscripts := superscripts+1
-	superscripts := mod(superscripts, 3) ; <-- Not sure why this isn't working
-	
-	; Display ToolTip to indicate which mode we're in (or none if "off")
-	if(superscripts == 0)
-		ToolTip, 
-	if(superscripts == 1)
-		ToolTip, Super
-	if(superscripts == 2)
-		ToolTip, Sub
-	
-	; Hotstrings
-	#If superscripts = 1
-		:?*:(::⁽
-		:?*:)::⁾
-		:?*:+::⁺
-		:?*:-::⁻
-		:?*:=::⁼
-		:?*:/::⸍
-		:?*:*:: ⃰
+; Eg. type CapsLock+^ to cycle Super/Sub/off, then "x", "2", etc.
+CapsLock & ^:: {
+    global superscripts
+    ; Cycle through 0 = off, 1 = superscript, 2 = subscript
+    superscripts := Mod(superscripts + 1, 3)
 
-		:?*:1::¹
-		:?*:2::²
-		:?*:3::³
-		:?*:4::⁴
-		:?*:5::⁵
-		:?*:6::⁶
-		:?*:7::⁷
-		:?*:8::⁸
-		:?*:9::⁹
-		:?*:0::⁰
+    if (superscripts == 0)
+        ToolTip()
+    else if (superscripts == 1)
+        ToolTip("Super")
+    else if (superscripts == 2)
+        ToolTip("Sub")
+}
 
-		:?*:a::ᵃ
-		:?*:b::ᵇ
-		:?*:c::ᶜ
-		:?*:d::ᵈ
-		:?*:e::ᵉ
-		:?*:f::ᶠ
-		:?*:g::ᵍ
-		:?*:h::ʰ
-		:?*:i::ⁱ
-		:?*:j::ʲ
-		:?*:k::ᵏ
-		:?*:l::ˡ
-		:?*:m::ᵐ
-		:?*:n::ⁿ
-		:?*:o::ᵒ
-		:?*:p::ᵖ
-		:?*:q::
-		:?*:r::ʳ
-		:?*:s::ˢ
-		:?*:t::ᵗ
-		:?*:u::ᵘ
-		:?*:v::ᵛ
-		:?*:w::ʷ
-		:?*:x::ˣ
-		:?*:y::ʸ
-		:?*:z::ᶻ
-	#If superscripts = 2
-		:?*:a::ₐ
-		:?*:b::
-		:?*:c::
-		:?*:d::
-		:?*:e::ₑ
-		:?*:f::
-		:?*:g::
-		:?*:h::ₕ
-		:?*:i::ᵢ
-		:?*:j::ⱼ
-		:?*:k::ₖ
-		:?*:l::ₗ
-		:?*:m::ₘ
-		:?*:n::ₙ
-		:?*:o::ₒ
-		:?*:p::ₚ
-		:?*:q::
-		:?*:r::ᵣ
-		:?*:s::ₛ
-		:?*:t::ₜ
-		:?*:u::ᵤ
-		:?*:v::ᵥ
-		:?*:w::
-		:?*:x::ₓ
-		:?*:y::
-		:?*:z::
-	#If
-return
+; --- Superscript hotstrings (active only while superscripts == 1) ---
+#HotIf superscripts == 1
+:?*:(::⁽
+:?*:)::⁾
+:?*:+::⁺
+:?*:-::⁻
+:?*:=::⁼
+:?*:/::⸍
+:?*:*:: ⃰
+
+:?*:1::¹
+:?*:2::²
+:?*:3::³
+:?*:4::⁴
+:?*:5::⁵
+:?*:6::⁶
+:?*:7::⁷
+:?*:8::⁸
+:?*:9::⁹
+:?*:0::⁰
+
+:?*:a::ᵃ
+:?*:b::ᵇ
+:?*:c::ᶜ
+:?*:d::ᵈ
+:?*:e::ᵉ
+:?*:f::ᶠ
+:?*:g::ᵍ
+:?*:h::ʰ
+:?*:i::ⁱ
+:?*:j::ʲ
+:?*:k::ᵏ
+:?*:l::ˡ
+:?*:m::ᵐ
+:?*:n::ⁿ
+:?*:o::ᵒ
+:?*:p::ᵖ
+:?*:r::ʳ
+:?*:s::ˢ
+:?*:t::ᵗ
+:?*:u::ᵘ
+:?*:v::ᵛ
+:?*:w::ʷ
+:?*:x::ˣ
+:?*:y::ʸ
+:?*:z::ᶻ
+
+; --- Subscript hotstrings (active only while superscripts == 2) ---
+#HotIf superscripts == 2
+:?*:a::ₐ
+:?*:e::ₑ
+:?*:h::ₕ
+:?*:i::ᵢ
+:?*:j::ⱼ
+:?*:k::ₖ
+:?*:l::ₗ
+:?*:m::ₘ
+:?*:n::ₙ
+:?*:o::ₒ
+:?*:p::ₚ
+:?*:r::ᵣ
+:?*:s::ₛ
+:?*:t::ₜ
+:?*:u::ᵤ
+:?*:v::ᵥ
+:?*:x::ₓ
+
+#HotIf   ; end superscript context; the following hotstrings are always active
 
 ; Greek Letters
 ; Removed, using Greek keyboard instead.
 
-:?*:`\sect::§
+:?*:\sect::§
 
 ; Mathematical Symbols
-:?*:`\DEG::°
-:?*:`\angle::∠
-:?*:`\perp::⫠
-:?*:`\inf::∞
-:?*:`\+-::±
-:?*:`\-+::∓
+:?*:\DEG::°
+:?*:\angle::∠
+:?*:\perp::⫠
+:?*:\inf::∞
+:?*:\+-::±
+:?*:\-+::∓
 :?*:\1/2::½
 
-:?*:`\nabla::∇
-:?*:`\integ::∫
-:?*:`\cinteg::∮
-:?*:`\partial::∂
+:?*:\nabla::∇
+:?*:\integ::∫
+:?*:\cinteg::∮
+:?*:\partial::∂
 
 ; Nth Root
-:?*:`\sqrt::√
-:?*:`\rad::√
-:?*:`\3rad::∛
-:?*:`\4rad::∜
+:?*:\sqrt::√
+:?*:\rad::√
+:?*:\3rad::∛
+:?*:\4rad::∜
 
 ; Inequalities
-:?*:`\<=::≤
-:?:`\!<::≮
-:?:`\!<=::≰
-:?:`\!>::≯
-:?:`\!>=::≱
-:?*:`\>=::≥
-:?*:`\!=::≠
-:?*:`\?=::≟
-:?*:`\a=::≅
-:?*:`\~=::≈
+:?*:\<=::≤
+:?:\!<::≮
+:?:\!<=::≰
+:?:\!>::≯
+:?:\!>=::≱
+:?*:\>=::≥
+:?*:\!=::≠
+:?*:\?=::≟
+:?*:\a=::≅
+:?*:\~=::≈
 
 ; Arrows - ⭢
-:?*:`\rarrow::→
-:?*:`\larrow::←
-:?*:`\biarrow::↔
-:?*:`\2arrows::⇄
-:?*:`\implies::⇒
-:?*:`\limplies::⇐
-:?*:`\uarrow::↑
-:?*:`\darrow::↓
-:?*:`\therefore::∴
+:?*:\rarrow::→
+:?*:\larrow::←
+:?*:\biarrow::↔
+:?*:\2arrows::⇄
+:?*:\implies::⇒
+:?*:\limplies::⇐
+:?*:\uarrow::↑
+:?*:\darrow::↓
+:?*:\therefore::∴
 
 ; Statistics
-:?*:`\bar::{U+0305}
-:?*:`\hat::{U+0302}
+:?*:\bar::{U+0305}
+:?*:\hat::{U+0302}
 
 ; Symbol Replacements (eg. dash)
-:?*:`\--::—
+:?*:\--::—
 
 ; Foreign Language Characters
 :?*:''a::á
@@ -360,50 +300,50 @@ return
 :?*:""o::ö
 :?*:""u::ü
 :?*:~~n::ñ
-:?*:`\!!::¡
-:?*:`\??::¿
+:?*:\!!::¡
+:?*:\??::¿
 
 ; Phone Symbols
-:?*:`\up::👍
-:?*:`\down::👎
-:?*:`\party::🎉
-:?*:`\heart::💗
-:?*:`\lit::🔥
-:?*:`\smile::😊
-:?*:`\ref::↗
+:?*:\up::👍
+:?*:\down::👎
+:?*:\party::🎉
+:?*:\heart::💗
+:?*:\lit::🔥
+:?*:\smile::😊
+:?*:\ref::↗
 
-#IfWinNotActive
+#HotIf   ; end "not Atom" context
+
 
 ; ###############
 ; Macro Expansion
 ; ###############
 
-; Date
-::`\td::
-SendInput %A_YYYY%.%A_MM%.%A_DD%
-return
+; Date (today) => YYYY.MM.DD
+::\td:: {
+    SendInput(A_YYYY "." A_MM "." A_DD)
+}
 
-::`\yd::  ; 
-today = %a_now%
-today += -1, days
-FormatTime, today, %today%, yyyy.MM.dd
-SendInput %today%   
-return
+; Date (yesterday) => YYYY.MM.DD
+::\yd:: {
+    today := DateAdd(A_Now, -1, "Days")
+    today := FormatTime(today, "yyyy.MM.dd")
+    SendInput(today)
+}
 
-::`\h6::
-SendInput {#}{#}{#}{#}{#}{#}{Space}
-return
+; Markdown H6 heading
+::\h6:: {
+    SendInput("{#}{#}{#}{#}{#}{#}{Space}")
+}
 
 ; Invoke Interactive Python IDLE
 ::pyi::python -i
-return
 
 ; LTSPICE Hotstrings
-
-::`\ltlt::
-SendInput `
+::\ltlt:: {
+    SendText("
 (
-{Raw}* NOTES:
+* NOTES:
 * V[name] [net] [ground=0] PWM (t0 v0 t1 v1 ...)
 * V[name] [net] [ground=0] PULSE(V1 V2 Tdelay Trise Tfall Ton Period Ncycles)
 
@@ -432,22 +372,14 @@ VB0 B[0] 0 pulse(0 5 1m 100p 100p 2m 4m)
 
 * SIMULATION TYPE:
 .tran 31m
-)
+)")
+}
 
 ; #############
 ; Google Sheets
 ; #############
 ; References the value of the cell immediately above current.
-::`\=IND::=INDIRECT( ADDRESS( ROW( ) - 1 , COLUMN( ) ) )
-
-
-; ########
-; Window Switching
-;#o::
-;SetTitleMatchMode, RegEx
-;InputBox, winTitle, Switch windows, Enter a window title.,, 300, 125
-;WinActivate, i)\Q%winTitle%\E
-;Return
+::\=IND::=INDIRECT( ADDRESS( ROW( ) - 1 , COLUMN( ) ) )
 
 
 ; ########
@@ -455,16 +387,13 @@ VB0 B[0] 0 pulse(0 5 1m 100p 100p 2m 4m)
 ; ########
 ; Source of some of this: https://github.com/ThatOneCoder/ahk/blob/master/Wynshaft.ahk.txt
 
-; Disable CapsLock (always keep it off at the OS level)
-SetCapsLockState, AlwaysOff
-
 ; Ctrl + CapsLock toggles actual CapsLock
-^CapsLock::
-if !GetKeyState("CapsLock", "T")
-    SetCapsLockState, On
-else
-    SetCapsLockState, AlwaysOff
-return
+^CapsLock:: {
+    if !GetKeyState("CapsLock", "T")
+        SetCapsLockState("On")
+    else
+        SetCapsLockState("AlwaysOff")
+}
 
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ; VIM MODAL NAVIGATION
@@ -473,192 +402,141 @@ return
 ; Press 'i' in normal mode to enter insert mode.
 ; Press Escape or CapsLock in insert mode to return to normal mode.
 ; In normal mode, CapsLock also acts as Escape.
+; Entering insert mode shows a blue border around the screen (replaces the old tooltip).
+
+; --- Helpers to switch modes and drive the border ---
+EnterInsert() {
+    global normalMode, showInsertBorder
+    normalMode := 0
+    if (showInsertBorder)
+        ShowBorder()
+}
+ExitInsert() {
+    global normalMode
+    normalMode := 1
+    HideBorder()
+}
 
 ; --- Enter insert mode (only active in normal mode) ---
-#if normalMode
-i::
-    normalMode := 0
-    if (showInsertTooltip)
-        ToolTip, -- I --, 0, 0
-    return
-#if
+#HotIf normalMode
+i:: {
+    EnterInsert()
+}
+#HotIf
 
 ; --- CapsLock: Escape equivalent in normal mode; exit insert mode in insert mode ---
-CapsLock::
-    SetCapsLockState, AlwaysOff
-    if (normalMode) {
-        Send, {Escape}
-    } else {
-        normalMode := 1
-        ToolTip,
-    }
-    return
+CapsLock:: {
+    global normalMode
+    SetCapsLockState("AlwaysOff")
+    if (normalMode)
+        Send("{Escape}")
+    else
+        ExitInsert()
+}
 
-; --- Escape: sends literal Escape in insert mode; passes Escape through in normal mode ---
-$Escape::
-    Send, {Escape}
-    return
+; --- Escape: sends literal Escape ---
+$Escape:: {
+    Send("{Escape}")
+}
 
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-; NORMAL MODE -- VIM hjkl and motion keys (plain keys, no CapsLock combo)
+; NORMAL MODE -- VIM hjkl and motion keys
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ; NOTE ON MODIFIERS:
-;   Ctrl/Alt/Win combos are never bound below, so hotkeys like ^s (Ctrl+S),
-;   !Tab (Alt+Tab), #e (Win+E), etc. pass straight through in BOTH modes.
-;   AHK does not fire a plain key hotkey (e.g. s::) while Ctrl/Alt/Win is held,
-;   so those modifier combinations always work as normal.
-;   Tab, Enter, arrows, etc. are left unbound and also pass through.
-
-; --- All normal-mode keys live in ONE #If block. ---
-; Shifted variants use explicit +key:: hotkeys (reliable), rather than
-; detecting Shift via GetKeyState (which proved unreliable inside #If).
-#if normalMode
+;   Ctrl/Alt/Win combos are never bound below, so hotkeys like ^s, !Tab, #e, etc.
+;   pass straight through in BOTH modes. Tab, Enter, arrows, etc. are also unbound.
+#HotIf normalMode
 
 ; hjkl movement (plain = move, +Shift = select)
-h::
-	Send, {Left}
-	return
-+h::
-	Send, +{Left}
-	return
-l::
-	Send, {Right}
-	return
-+l::
-	Send, +{Right}
-	return
-j::
-	if WinActive("ahk_exe ONENOTE.EXE")
-		SendPlay, {Down}
-	else
-		Send, {Down}
-	return
-+j::
-	if WinActive("ahk_exe ONENOTE.EXE")
-		SendPlay, +{Down}
-	else
-		Send, +{Down}
-	return
-k::
-	if WinActive("ahk_exe ONENOTE.EXE")
-		SendPlay, {Up}
-	else
-		Send, {Up}
-	return
-+k::
-	if WinActive("ahk_exe ONENOTE.EXE")
-		SendPlay, +{Up}
-	else
-		Send, +{Up}
-	return
+h::Send("{Left}")
++h::Send("+{Left}")
+l::Send("{Right}")
++l::Send("+{Right}")
+j:: {
+    if WinActive("ahk_exe ONENOTE.EXE")
+        SendPlay("{Down}")
+    else
+        Send("{Down}")
+}
++j:: {
+    if WinActive("ahk_exe ONENOTE.EXE")
+        SendPlay("+{Down}")
+    else
+        Send("+{Down}")
+}
+k:: {
+    if WinActive("ahk_exe ONENOTE.EXE")
+        SendPlay("{Up}")
+    else
+        Send("{Up}")
+}
++k:: {
+    if WinActive("ahk_exe ONENOTE.EXE")
+        SendPlay("+{Up}")
+    else
+        Send("+{Up}")
+}
 
 ; Line / document motions
 ; 0 = start of line   |  Shift+0 = highlight to BEGINNING of line
-0::
-Send {Home}
-return
-+0::
-Send +{Home}
-return
+0::Send("{Home}")
++0::Send("+{Home}")
 ; 4 = end of line     |  Shift+4 ($) = highlight to END of line
-4::
-Send {End}
-return
-+4::
-Send +{End}
-return
+4::Send("{End}")
++4::Send("+{End}")
 ; b/w = word left/right (Shift selects)
-b::
-Send ^{Left}
-return
-+b::
-Send ^+{Left}
-return
-w::
-Send ^{Right}
-return
-+w::
-Send ^+{Right}
-return
+b::Send("^{Left}")
++b::Send("^+{Left}")
+w::Send("^{Right}")
++w::Send("^+{Right}")
 ; g = top of document  |  Shift+G = highlight to END of document
-g::
-Send ^{Home}
-return
-+g::
-Send ^+{End}
-return
+g::Send("^{Home}")
++g::Send("^+{End}")
 
 ; Select current line (v) / whole line incl. wraps (V)
-v::
-Send, {Home}+{End}
-return
-+v::
-Send {Shift Up}
-Send, {Home}{Home}{Shift Down}{End}{End}{Shift Up}
-return
+v::Send("{Home}+{End}")
++v:: {
+    Send("{Shift Up}")
+    Send("{Home}{Home}{Shift Down}{End}{End}{Shift Up}")
+}
 
 ; Insert line above (o) / below (Shift+O), then enter insert mode.
 ; Shift is released first so {End}{Enter} isn't turned into Shift+End/Shift+Enter.
-o::
-Send {Shift Up}
-Send {End}{Enter}
-normalMode := 0
-if (showInsertTooltip)
-    ToolTip, ' I ', 0, 0
-return
-+o::
-Send {Home}{Enter}{Up}
-normalMode := 0
-if (showInsertTooltip)
-    ToolTip, ' I ', 0, 0
-return
+o:: {
+    Send("{Shift Up}")
+    Send("{End}{Enter}")
+    EnterInsert()
+}
++o:: {
+    Send("{Home}{Enter}{Up}")
+    EnterInsert()
+}
 
 ; Undo (u) / Redo (Shift+U)
-u::
-Send ^z
-return
-+u::
-Send ^y
-return
+u::Send("^z")
++u::Send("^y")
 
 ; Delete char forward (d)
-d::
-Send {Delete}
-return
+d::Send("{Delete}")
 
 ; Delete word forward (f) = Ctrl+Delete
-f::
-Send ^{Delete}
-return
+f::Send("^{Delete}")
 
-; Delete word backward (Backspace) = Backspace in normal mode.
-; In insert mode Backspace = Ctrl+Backspace.
-+Backspace::
-Send ^{Backspace}
-return
+; Delete word backward (Backspace) = Ctrl+Backspace in normal mode.
++Backspace::Send("^{Backspace}")
 
 ; Yank/copy (y), cut (x), paste (p)
-y::
-Send ^c
-return
-x::
-Send ^x
-return
-p::
-Send ^v
-return
+y::Send("^c")
+x::Send("^x")
+p::Send("^v")
 
 ; Append: move right then enter insert mode (a)
-a::
-Send {Right}
-normalMode := 0
-if (showInsertTooltip)
-    ToolTip, ' I ', 0, 0
-return
+a:: {
+    Send("{Right}")
+    EnterInsert()
+}
 
-; --- Suppress all other typing in normal mode ---
-; Unmapped letters and digits do nothing (real modal behavior).
-; Ctrl/Alt/Win combos are unaffected (see note above), so shortcuts still work.
+; --- Suppress all other typing in normal mode (real modal behavior) ---
 q::return
 e::return
 r::return
@@ -677,7 +555,7 @@ m::return
 8::return
 9::return
 
-#if
+#HotIf
 
 ; ##############
 ; Administrative
@@ -685,24 +563,21 @@ m::return
 ::a/cp::algoldst@calpoly.edu
 
 ; Disable shortcut to open Edge browser from Explorer / Desktop
-#IfWinActive ahk_class WorkerW CabinetWClass
-!e::
-return
-#IfWinActive
+#HotIf WinActive("ahk_class WorkerW") || WinActive("ahk_class CabinetWClass")
+!e::return
+#HotIf
 
-; Disable F1 Help
-; For F1 Exclusions
-GroupAdd, Helps , ahk_exe WINWORD.EXE
-GroupAdd, Helps , ahk_exe EXCEL.EXE 
-GroupAdd, Helps , ahk_exe POWERPNT.EXE
-GroupAdd, Helps , ahk_exe notepad.exe
-GroupAdd, Helps , ahk_class WorkerW 
-GroupAdd, Helpls, ahk_class CabinetWClass
+; Disable F1 Help in select apps
+GroupAdd("Helps", "ahk_exe WINWORD.EXE")
+GroupAdd("Helps", "ahk_exe EXCEL.EXE")
+GroupAdd("Helps", "ahk_exe POWERPNT.EXE")
+GroupAdd("Helps", "ahk_exe notepad.exe")
+GroupAdd("Helps", "ahk_class WorkerW")
+GroupAdd("Helps", "ahk_class CabinetWClass")
 
-#IfWinActive , ahk_group Helps 
-F1::
-return
-#IfWinActive
+#HotIf WinActive("ahk_group Helps")
+F1::return
+#HotIf
 
 ; ----------------------------------------
 ; Shortcut to open/cycle Obsidian windows
@@ -710,7 +585,7 @@ return
 ; --- Helper: remove a value from the MRU list ---
 obsMRU_Remove(hwnd) {
     global obsidianMRU
-    Loop, % obsidianMRU.Length() {
+    Loop obsidianMRU.Length {
         if (obsidianMRU[A_Index] = hwnd) {
             obsidianMRU.RemoveAt(A_Index)
             return
@@ -728,270 +603,229 @@ obsMRU_Touch(hwnd) {
 ; --- Background timer: poll the active window and keep MRU in sync ---
 ; Runs every 250 ms. Adds newly-focused Obsidian windows to the front of the list
 ; and prunes HWNDs for windows that no longer exist.
-ObsMRU_Poll:
-    ; Prune dead windows
+ObsMRU_Poll() {
     global obsidianMRU
-    i := obsidianMRU.Length()
+    ; Prune dead windows
+    i := obsidianMRU.Length
     while (i >= 1) {
-        if !WinExist("ahk_id " . obsidianMRU[i])
+        if !WinExist("ahk_id " obsidianMRU[i])
             obsidianMRU.RemoveAt(i)
         i--
     }
     ; If the currently active window is an Obsidian window, move it to front
-    WinGet, activeHWND, ID, A
-    WinGet, activeExe, ProcessName, ahk_id %activeHWND%
+    activeHWND := WinExist("A")
+    if !activeHWND
+        return
+    try
+        activeExe := WinGetProcessName("ahk_id " activeHWND)
+    catch
+        return
     if (activeExe = "Obsidian.exe")
         obsMRU_Touch(activeHWND)
-return
-
-; Cycles through all open Obsidian windows on repeated Win+O presses.
-; Uses ahk_exe Obsidian.exe to match only real Obsidian windows (not Explorer, Git Bash, etc.).
-; Cycles in most-recently-used order: first press brings the previous Obsidian window,
-; successive presses walk further back through MRU history -- just like Alt+Tab.
-#o::
-WinGet, obsWins, List, ahk_exe Obsidian.exe
-
-if (obsWins = 0)  ; No Obsidian windows open
-    return
-
-if (obsWins = 1) {  ; Only one -- just activate it
-    WinActivate, ahk_id %obsWins1%
-    return
 }
 
-; Ensure MRU list contains every currently-open Obsidian window
-; (adds any that haven't been seen yet, appending at the end so known-recent stay first)
-Loop, %obsWins% {
-    hwnd := obsWins%A_Index% + 0
-    found := false
-    Loop, % obsidianMRU.Length() {
-        if (obsidianMRU[A_Index] = hwnd) {
-            found := true
+; Cycles through all open Obsidian windows on repeated Win+O presses (MRU order).
+#o:: {
+    global obsidianMRU
+    obsWins := WinGetList("ahk_exe Obsidian.exe")
+
+    if (obsWins.Length = 0)   ; No Obsidian windows open
+        return
+
+    if (obsWins.Length = 1) { ; Only one -- just activate it
+        WinActivate("ahk_id " obsWins[1])
+        return
+    }
+
+    ; Ensure MRU list contains every currently-open Obsidian window
+    for hwnd in obsWins {
+        found := false
+        for m in obsidianMRU {
+            if (m = hwnd) {
+                found := true
+                break
+            }
+        }
+        if !found
+            obsidianMRU.Push(hwnd)
+    }
+
+    ; Find the currently active window in the MRU list
+    activeHWND := WinExist("A")
+    currentIdx := 0
+    for idx, m in obsidianMRU {
+        if (m = activeHWND) {
+            currentIdx := idx
             break
         }
     }
-    if !found
-        obsidianMRU.Push(hwnd)
-}
 
-; Find the currently active window in the MRU list
-WinGet, activeHWND, ID, A
-currentIdx := 0
-Loop, % obsidianMRU.Length() {
-    if (obsidianMRU[A_Index] = activeHWND) {
-        currentIdx := A_Index
-        break
-    }
+    ; Advance to next in MRU order, wrapping around
+    nextIdx := (currentIdx = 0 || currentIdx >= obsidianMRU.Length) ? 1 : currentIdx + 1
+    WinActivate("ahk_id " obsidianMRU[nextIdx])
 }
-
-; Advance to next in MRU order, wrapping around
-nextIdx := (currentIdx = 0 || currentIdx >= obsidianMRU.Length()) ? 1 : currentIdx + 1
-nextHWND := obsidianMRU[nextIdx]
-WinActivate, ahk_id %nextHWND%
-Return
 
 ; --------------------------------------
 
-; Win+Period opens Shift+RClick Context Menu
-#IfWinActive ahk_class CabinetWClass  ; for use in explorer.
-#.::
-Keywait, LWin
-Send, {Shift down}{AppsKey}{Shift up}
-;Sleep, 50		; Uncomment these two lines to launch Cmder with Win+C
-;Send, c		; The letter sent can be modified (eg. Send, p → Launch powershell here)
-return
-#IfWinActive
+; Win+Period opens Shift+RClick Context Menu (in Explorer)
+#HotIf WinActive("ahk_class CabinetWClass")
+#.:: {
+    KeyWait("LWin")
+    Send("{Shift down}{AppsKey}{Shift up}")
+}
+#HotIf
 
 ; Win+C switches to cli-calc window if it exists
-#c::
-IfWinExist, cli-calc
-    WinActivate, cli-calc
-Return
+#c:: {
+    if WinExist("cli-calc")
+        WinActivate("cli-calc")
+}
 
 ; Always On Top: Win+Space
-#SPACE::  Winset, Alwaysontop, , A
-#IfWinActive ahk_exe ConEmu64.exe
-isTransparent := 0
-!`::
-Keywait, Alt
-If(isTransparent) {
-    Send, ^#y
-    isTransparent := 0
+#Space::WinSetAlwaysOnTop(-1, "A")
+
+; ConEmu transparency toggle: Alt+`
+#HotIf WinActive("ahk_exe ConEmu64.exe")
+!`:: {
+    global isTransparent
+    KeyWait("Alt")
+    if (isTransparent) {
+        Send("^#y")
+        isTransparent := 0
+    } else {
+        Send("^#t")
+        isTransparent := 1
+    }
 }
-Else {
-    Send, ^#t
-    isTransparent := 1
-}
-return
-#IfWinActive
+#HotIf
 
 ; Change Power Plan: Win+F1/F2
-; Replace each string with a power plan's GUID (run in command prompt: powercfg -l)
-;#F1::Run, powercfg -s 381b4222-f694-41f0-9685-ff5bb260df2e
-;return
-;#F2::Run, powercfg -s 7a07f404-58aa-4f23-9464-fbf413247218
-;return
+; Replace each string with a power plan's GUID (run: powercfg -l)
+;#F1::Run("powercfg -s 381b4222-f694-41f0-9685-ff5bb260df2e")
+;#F2::Run("powercfg -s 7a07f404-58aa-4f23-9464-fbf413247218")
 
 
 ; ###################
 ; Music/Audio Control
 ; ###################
-; Keyboard Remaps
-
-; Useful on plain keyboards -- leave commented out if your laptops has these hotkeys already.
-;ScrollLock:: Send {Volume_Up}
-;^ScrollLock::ScrollLock
-;PrintScreen:: Send {Volume_Down}
-;^PrintScreen::PrintScreen
-;break::Send {Volume_Mute} ; PauseBreak key mutes
-
+; Keyboard Remaps (right-Alt + key)
 >!Space::Media_Play_Pause
-return
 >!Right::Media_Next
 >!Left::Media_Prev
 >!Up::Volume_Up
 >!Down::Volume_Down
 
-; Show/hide persistent volume control panel
-#Break::
-If WinExist("ahk_exe SndVol.exe"){
-    WinClose , ahk_exe SndVol.exe
+; Show/hide persistent volume control panel: Win+Pause/Break
+#Pause:: {
+    if WinExist("ahk_exe SndVol.exe") {
+        WinClose("ahk_exe SndVol.exe")
+    } else {
+        Run("C:\Windows\System32\SndVol.exe")
+        WinWait("ahk_exe SndVol.exe")
+        WinGetPos(, , &Width, &Height, "ahk_exe SndVol.exe")
+        if WinExist("ahk_exe SndVol.exe")
+            WinActivate("ahk_exe SndVol.exe")
+        WinWaitActive("ahk_exe SndVol.exe")
+        WinMove(3840 - Width, 1080 - Height, , , "ahk_exe SndVol.exe")
+        WinSetAlwaysOnTop(1, "A")
+    }
 }
-Else{
-Run C:\Windows\System32\SndVol.exe,
-WinWait, ahk_exe SndVol.exe
-WinGetPos ,,, Width, Height, ahk_exe SndVol.exe,,,
-If WinExist("ahk_exe SndVol.exe")
-    WinActivate, ahk_exe SndVol.exe
-WinWaitActive, ahk_exe SndVol.exe
-WinMove, ahk_exe SndVol.exe,, 3840-Width, 1080-Height
-Winset, Alwaysontop, , A
-}
-Return
 
 ; Mouse Remaps
 
-; LEGACY Modifications for Regular Mouse
-; XButton1 toggles the mouse-wheel from scrolling to Volume control.
-#MaxHotkeysPerInterval 200
-;XButton1::State:=!State
-;$WheelUp:: ; $ sign makes the hotkey non-triggerable by the Send command (so as not to introduce infinite loops)
-;If State
-;Send {Volume_Up}
-;Else
-;Send {WheelUp}
-;Return
-;$WheelDown::
-;If State
-;Send {Volume_Down}
-;Else
-;Send {WheelDown}
-;Return
-; Alternatively, if you have a second mouse button to sacrifice:
-;XButton2 & WheelUp::Send {Volume_Up}
-;XButton2 & WheelDown::Send {Volume_Down}
-
-; Fast Scrolling (press in MButton while scrolling)
-;MButton & WheelUp::Send {PgUp}
-;MButton & WheelDown::Send {PgDn}
-;$MButton::Send {MButton}
-
 ; Reposition window on Right Alt + Click/Drag
 ; Source: https://autohotkey.com/board/topic/83253-alt-drag-windows/
-RAlt & LButton::
-CoordMode, Mouse  ; Switch to screen/absolute coordinates.
-MouseGetPos, EWD_MouseStartX, EWD_MouseStartY, EWD_MouseWin
-WinGetPos, EWD_OriginalPosX, EWD_OriginalPosY,,, ahk_id %EWD_MouseWin%
-WinGet, EWD_WinState, MinMax, ahk_id %EWD_MouseWin%
-if EWD_WinState = 0  ; Only if the window isn't maximized
-    SetTimer, EWD_WatchMouse, 10 ; Track the mouse as the user drags it.
-return
-EWD_WatchMouse:
-GetKeyState, EWD_LButtonState, LButton, P
-if EWD_LButtonState = U  ; Button has been released, so drag is complete.
-{
-    SetTimer, EWD_WatchMouse, off
-    return
+A_MaxHotkeysPerInterval := 200
+RAlt & LButton:: {
+    global
+    CoordMode("Mouse")  ; Switch to screen/absolute coordinates.
+    MouseGetPos(&EWD_MouseStartX, &EWD_MouseStartY, &EWD_MouseWin)
+    WinGetPos(&EWD_OriginalPosX, &EWD_OriginalPosY, , , "ahk_id " EWD_MouseWin)
+    EWD_WinState := WinGetMinMax("ahk_id " EWD_MouseWin)
+    if (EWD_WinState = 0)  ; Only if the window isn't maximized
+        SetTimer(EWD_WatchMouse, 10)  ; Track the mouse as the user drags it.
 }
-GetKeyState, EWD_EscapeState, Escape, P
-if EWD_EscapeState = D  ; Escape has been pressed, so drag is cancelled.
-{
-    SetTimer, EWD_WatchMouse, off
-    WinMove, ahk_id %EWD_MouseWin%,, %EWD_OriginalPosX%, %EWD_OriginalPosY%
-    return
+EWD_WatchMouse() {
+    global
+    if !GetKeyState("LButton", "P") {  ; Button released, so drag is complete.
+        SetTimer(EWD_WatchMouse, 0)
+        return
+    }
+    if GetKeyState("Escape", "P") {    ; Escape pressed, so drag is cancelled.
+        SetTimer(EWD_WatchMouse, 0)
+        WinMove(EWD_OriginalPosX, EWD_OriginalPosY, , , "ahk_id " EWD_MouseWin)
+        return
+    }
+    ; Otherwise reposition the window to match the change in mouse coordinates.
+    CoordMode("Mouse")
+    MouseGetPos(&EWD_MouseX, &EWD_MouseY)
+    WinGetPos(&EWD_WinX, &EWD_WinY, , , "ahk_id " EWD_MouseWin)
+    SetWinDelay(-1)   ; Makes the move faster/smoother.
+    WinMove(EWD_WinX + EWD_MouseX - EWD_MouseStartX, EWD_WinY + EWD_MouseY - EWD_MouseStartY, , , "ahk_id " EWD_MouseWin)
+    EWD_MouseStartX := EWD_MouseX
+    EWD_MouseStartY := EWD_MouseY
 }
-; Otherwise, reposition the window to match the change in mouse coordinates
-; caused by the user having dragged the mouse:
-CoordMode, Mouse
-MouseGetPos, EWD_MouseX, EWD_MouseY
-WinGetPos, EWD_WinX, EWD_WinY,,, ahk_id %EWD_MouseWin%
-SetWinDelay, -1   ; Makes the below move faster/smoother.
-WinMove, ahk_id %EWD_MouseWin%,, EWD_WinX + EWD_MouseX - EWD_MouseStartX, EWD_WinY + EWD_MouseY - EWD_MouseStartY
-EWD_MouseStartX := EWD_MouseX  ; Update for the next timer-call to this subroutine.
-EWD_MouseStartY := EWD_MouseY
-return
+
+; Blackout Screen: Win+B
+#b::Run("cmd /c scrnsave.scr /s")
 
 
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+; INSERT-MODE SCREEN BORDER
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+; Draws a 2px blue border around the entire (virtual) screen while in insert mode.
+; Implemented as four thin, always-on-top, click-through GUI windows created once
+; at startup and simply shown/hidden as the mode changes.
 
-; Pan-Scrolling using Pen Input
-; Scrolling in tablet mode activates with Alt key. Press Alt again to stop scrolling.
-; (Mapped Alt key to pen modifier button.)
-; isTabletMode := 1
-; penScrollActive := 0
-; #MaxThreadsPerHotkey 2   ; Allows a second instance to modify penScrollActive while PenScroll is looping.
-; $Alt::
-; 	; Check if PC is in tablet mode.
-; 	;	1 --> Tablet, 0 --> Desktop
-; 	RegRead, isTabletMode, HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\ImmersiveShell,TabletMode
-; 	if(isTabletMode) {
-; 		if(penScrollActive) {
-; 			penScrollActive := 0
-; 		}
-; 		else {
-; 			penScrollActive := 1
-; 		}
-; 	GoSub PenScroll
-; 	}
-; 	else
-; 		Send, {Alt}
-; 	return
-; PenScroll:
-; 	loop {
-; 		MouseGetPos, mouseX, mouseY
-; 		ToolTip, %mouseX% %mouseY%
-; 		Sleep, 20
-; 		MouseGetPos, mouseX_new, mouseY_new
-; 		if (mouseX_new - mouseX > 0)
-; 			Send, {WheelLeft}
-; 		else if (mouseX_new - mouseX < 0)
-; 			Send, {WheelRight}
-; 		if (mouseY_new - mouseY > 0)
-; 			Send, {WheelUp}
-; 		else if (mouseY_new - mouseY < 0)
-; 			Send, {WheelDown}
-; 		if (penScrollActive = 0)
-; 			break
-; 	}
-; 	return
-; #If penScrollActive
-; LButton::Return
+InitBorder() {
+    global borderGuis, borderColor, borderThick
+    vx := SysGet(76)   ; SM_XVIRTUALSCREEN  (left)
+    vy := SysGet(77)   ; SM_YVIRTUALSCREEN  (top)
+    vw := SysGet(78)   ; SM_CXVIRTUALSCREEN (width, all monitors)
+    vh := SysGet(79)   ; SM_CYVIRTUALSCREEN (height, all monitors)
+    t  := borderThick
 
-; Blackout Screen
-#b::Run, cmd /c scrnsave.scr /s
+    ; Each edge: [x, y, w, h] -> Top, Bottom, Left, Right
+    edges := [ [vx,          vy,          vw, t ]
+             , [vx,          vy + vh - t, vw, t ]
+             , [vx,          vy,          t,  vh]
+             , [vx + vw - t, vy,          t,  vh] ]
+
+    for e in edges {
+        ; -Caption: no title bar   +ToolWindow: no taskbar button
+        ; +E0x20 (WS_EX_TRANSPARENT): click-through
+        ; +E0x08000000 (WS_EX_NOACTIVATE): never steal focus
+        g := Gui("+AlwaysOnTop -Caption +ToolWindow +E0x20 +E0x08000000")
+        g.BackColor := borderColor
+        g.Show("x" e[1] " y" e[2] " w" e[3] " h" e[4] " NoActivate")
+        g.Hide()   ; remembers position/size for later re-show
+        borderGuis.Push(g)
+    }
+}
+
+ShowBorder() {
+    global borderGuis
+    for g in borderGuis
+        g.Show("NoActivate")
+}
+
+HideBorder() {
+    global borderGuis
+    for g in borderGuis
+        g.Hide()
+}
 
 
 ; CHANGELOG:
 ; 1.2:
-; Add changelog.
-; Add undo, delete current word.
-; Add volume up/down keyboard remaps.
-
+; Add changelog. Add undo, delete current word. Add volume up/down keyboard remaps.
 ; 1.3:
 ; Add phone symbols: smile, thumbs up/down, fire, party
-
 ; 1.4:
 ; Add LTSpice hotstrings
-
 ; 1.5:
 ; F1 Help disabled in Notepad, Excel, Word, Powerpoint, and Explorer
-
+; 2.0:
+; Migrated entire script from AutoHotkey v1 to v2.
+; Replaced the "-- INSERT --" tooltip with a 2px blue border around the screen
+;   that appears while in Vim insert mode.
