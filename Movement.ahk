@@ -175,10 +175,15 @@ SetTimer, ObsMRU_Poll, 250
 ; Meta
 ; ####
 ; To Suspend the script (such as in cases where you wish to type the literal "\sqrt", "\deg" etc.)
-; Left Ctrl + Right Ctrl
+; Left Ctrl + Right Ctrl  -or-  Shift + CapsLock
 LCtrl & RCtrl::
-Suspend Toggle
-Return
++CapsLock::
+    Suspend Toggle
+    if (A_IsSuspended)
+        SetCapsLockState, Off       ; let CapsLock work normally while suspended
+    else
+        SetCapsLockState, AlwaysOff ; re-disable CapsLock when resuming
+    Return
 
 ; Reload the script after changing .ahk file: Win+`
 #`::Reload
