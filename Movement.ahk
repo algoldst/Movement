@@ -80,7 +80,8 @@
 ;    \>=       |   ≥
 ;    \!=       |   ≠
 ;    \1/2      |   ½
-; Suspend AHK  |  LeftCtrl + RightCtrl  -or-  Shift + CapsLock
+; Suspend AHK  |  LeftCtrl + RightCtrl  -or-  Ctrl + CapsLock
+; Exit insert   |  j + k  (chord, simultaneous)
 
 ; ~~~~~~~~~~
 ; THE SCRIPT
@@ -103,15 +104,14 @@ superscripts := 0
 isTransparent := 0
 
 ; Insert-mode screen border settings (2px, blue)
-borderColor := "0000FF"
-borderThick := 2
+borderColor := "00FF00"
+borderThick := 3
 borderGuis  := []
 
 ; Obsidian MRU list (most-recently-used window order)
 obsidianMRU := []
 
-; Keep CapsLock disabled at the OS level from the start.
-SetCapsLockState("AlwaysOff")
+; CapsLock is left to work normally (OS default).
 
 ; Build the (hidden) insert-mode border windows once at startup.
 InitBorder()
@@ -128,16 +128,12 @@ SetTimer(ObsMRU_Poll, 250)
 ; Meta
 ; ####
 ; To Suspend the script (e.g. to type the literal "\sqrt", "\deg" etc.):
-; Left Ctrl + Right Ctrl  -or-  Shift + CapsLock
+; Left Ctrl + Right Ctrl  -or-  Ctrl + CapsLock
 ; #SuspendExempt keeps these hotkeys working WHILE suspended so you can resume.
 #SuspendExempt
 LCtrl & RCtrl::
-+CapsLock:: {
+^CapsLock:: {
     Suspend(-1)   ; toggle
-    if (A_IsSuspended)
-        SetCapsLockState("Off")       ; let CapsLock work normally while suspended
-    else
-        SetCapsLockState("AlwaysOff")  ; re-disable CapsLock when resuming
 }
 
 ; Reload the script after changing .ahk file: Win+`
@@ -387,22 +383,13 @@ VB0 B[0] 0 pulse(0 5 1m 100p 100p 2m 4m)
 ; ########
 ; Source of some of this: https://github.com/ThatOneCoder/ahk/blob/master/Wynshaft.ahk.txt
 
-; Ctrl + CapsLock toggles actual CapsLock
-^CapsLock:: {
-    if !GetKeyState("CapsLock", "T")
-        SetCapsLockState("On")
-    else
-        SetCapsLockState("AlwaysOff")
-}
-
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ; VIM MODAL NAVIGATION
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ; Normal mode is active by default (normalMode = 1).
 ; Press 'i' in normal mode to enter insert mode.
-; Press Escape or CapsLock in insert mode to return to normal mode.
-; In normal mode, CapsLock also acts as Escape.
-; Entering insert mode shows a blue border around the screen (replaces the old tooltip).
+; Press j+k (chord) in insert mode to return to normal mode.
+; Entering insert mode shows a border around the screen (replaces the old tooltip).
 
 ; --- Helpers to switch modes and drive the border ---
 EnterInsert() {
@@ -424,20 +411,23 @@ i:: {
 }
 #HotIf
 
-; --- CapsLock: Escape equivalent in normal mode; exit insert mode in insert mode ---
-CapsLock:: {
-    global normalMode
-    SetCapsLockState("AlwaysOff")
-    if (normalMode)
-        Send("{Escape}")
-    else
+; --- j+k chord: exit insert mode (insert mode only) ---
+; Both orderings handled so the chord fires regardless of which key goes down first.
+; Explicit solo pass-throughs restore normal j/k typing when the chord isn't used.
+#HotIf !normalMode
+j:: {
+    if KeyWait("k", "D T0.02")
         ExitInsert()
+    else
+        SendInput("j")
 }
-
-; --- Escape: sends literal Escape ---
-$Escape:: {
-    Send("{Escape}")
+k:: {
+    if KeyWait("j", "D T0.02")
+        ExitInsert()
+    else
+        SendInput("k")
 }
+#HotIf
 
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ; NORMAL MODE -- VIM hjkl and motion keys
