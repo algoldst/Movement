@@ -1,4 +1,4 @@
-#Requires AutoHotkey v2.0
+﻿#Requires AutoHotkey v2.0
 #SingleInstance Force
 
 ; Encoding note (v2): AutoHotkey v2 reads script files as UTF-8 by default, so a
@@ -95,6 +95,12 @@ normalMode := 1
 
 ; Show the blue screen border when entering insert mode? 1 = yes, 0 = no
 showInsertBorder := 1
+
+; Show a '-- I --' tooltip when in insert mode? 1 = yes, 0 = no
+showInsertTooltip := 1
+
+; Tooltip position: "mouse" = near cursor (original behavior), "top-left" = fixed corner
+insertTooltipPos := "top-left"
 
 ; Superscript/subscript cycling state for CapsLock+^
 superscripts := 0
@@ -402,19 +408,26 @@ VB0 B[0] 0 pulse(0 5 1m 100p 100p 2m 4m)
 ; Press 'i' in normal mode to enter insert mode.
 ; Press Escape or CapsLock in insert mode to return to normal mode.
 ; In normal mode, CapsLock also acts as Escape.
-; Entering insert mode shows a blue border around the screen (replaces the old tooltip).
+; Entering insert mode shows a blue border around the screen and/or a tooltip.
 
-; --- Helpers to switch modes and drive the border ---
+; --- Helpers to switch modes and drive the border/tooltip ---
 EnterInsert() {
-    global normalMode, showInsertBorder
+    global normalMode, showInsertBorder, showInsertTooltip, insertTooltipPos
     normalMode := 0
     if (showInsertBorder)
         ShowBorder()
+    if (showInsertTooltip) {
+        if (insertTooltipPos = "top-left")
+            ToolTip("-- I --", 0, 0)
+        else
+            ToolTip("-- I --")  ; near mouse cursor
+    }
 }
 ExitInsert() {
     global normalMode
     normalMode := 1
     HideBorder()
+    ToolTip()  ; clear the insert tooltip
 }
 
 ; --- Enter insert mode (only active in normal mode) ---
