@@ -80,7 +80,7 @@
 ;    \>=       |   ≥
 ;    \!=       |   ≠
 ;    \1/2      |   ½
-; Suspend AHK  |  LeftCtrl + RightCtrl  -or-  Shift + CapsLock
+; Suspend AHK  |  LeftCtrl + RightCtrl  -or-  Ctrl + CapsLock
 
 ; ~~~~~~~~~~
 ; THE SCRIPT
@@ -128,11 +128,11 @@ SetTimer(ObsMRU_Poll, 250)
 ; Meta
 ; ####
 ; To Suspend the script (e.g. to type the literal "\sqrt", "\deg" etc.):
-; Left Ctrl + Right Ctrl  -or-  Shift + CapsLock
+; Left Ctrl + Right Ctrl  -or-  Ctrl + CapsLock
 ; #SuspendExempt keeps these hotkeys working WHILE suspended so you can resume.
 #SuspendExempt
 LCtrl & RCtrl::
-+CapsLock:: {
+^CapsLock:: {
     Suspend(-1)   ; toggle
     if (A_IsSuspended)
         SetCapsLockState("Off")       ; let CapsLock work normally while suspended
@@ -388,7 +388,7 @@ VB0 B[0] 0 pulse(0 5 1m 100p 100p 2m 4m)
 ; Source of some of this: https://github.com/ThatOneCoder/ahk/blob/master/Wynshaft.ahk.txt
 
 ; Ctrl + CapsLock toggles actual CapsLock
-^CapsLock:: {
++CapsLock:: {
     if !GetKeyState("CapsLock", "T")
         SetCapsLockState("On")
     else
@@ -429,7 +429,8 @@ CapsLock:: {
     global normalMode
     SetCapsLockState("AlwaysOff")
     if (normalMode)
-        Send("{Escape}")
+        return
+        ;Send("{Escape}")
     else
         ExitInsert()
 }
