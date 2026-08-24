@@ -94,7 +94,7 @@
 normalMode := 1
 
 ; Show the blue screen border when entering insert mode? 1 = yes, 0 = no
-showInsertBorder := 1
+showInsertBorder := 0
 
 ; Show a '-- I --' tooltip when in insert mode? 1 = yes, 0 = no
 showInsertTooltip := 1
@@ -417,9 +417,11 @@ EnterInsert() {
     if (showInsertBorder)
         ShowBorder()
     if (showInsertTooltip) {
-        if (insertTooltipPos = "top-left")
-            ToolTip("-- I --", 0, 0)
-        else
+        if (insertTooltipPos = "top-left") {
+            CoordMode("ToolTip", "Window")  ; 0,0 = active window's outer top-left (title bar)
+            ToolTip("-- I --", 8, 8)
+            CoordMode("ToolTip", "Screen")  ; restore default
+        } else
             ToolTip("-- I --")  ; near mouse cursor
     }
 }
