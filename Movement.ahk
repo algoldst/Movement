@@ -93,11 +93,16 @@
 ; VIM modal state: 1 = normal mode, 0 = insert mode
 normalMode := 1
 
+; Sticky-shift (visual/select) state: 1 = selecting, 0 = normal.
+; Toggled by 'v' in normal mode. While on, movement keys extend a selection;
+; pressing any non-movement key (or 'v' again) releases it.
+stickyShift := 0
+
 ; Show the blue screen border when entering insert mode? 1 = yes, 0 = no
-showInsertBorder := 0
+showInsertBorder := 1
 
 ; Show a '-- I --' tooltip when in insert mode? 1 = yes, 0 = no
-showInsertTooltip := 1
+showInsertTooltip := 0
 
 ; Tooltip position: "mouse" = near cursor (original behavior), "top-left" = fixed corner
 insertTooltipPos := "top-left"
@@ -109,8 +114,8 @@ superscripts := 0
 isTransparent := 0
 
 ; Insert-mode screen border settings (2px, blue)
-borderColor := "0000FF"
-borderThick := 2
+borderColor := "00FF00"
+borderThick := 3
 borderGuis  := []
 
 ; Obsidian MRU list (most-recently-used window order)
@@ -411,9 +416,30 @@ VB0 B[0] 0 pulse(0 5 1m 100p 100p 2m 4m)
 ; Entering insert mode shows a blue border around the screen and/or a tooltip.
 
 ; --- Helpers to switch modes and drive the border/tooltip ---
+; --- Sticky-shift (visual/select mode) helpers ---
+; Turn sticky-shift on and show a '-- V --' indicator.
+SetSticky(state) {
+    global stickyShift
+    stickyShift := state
+    if (stickyShift) {
+        CoordMode("ToolTip", "Window")
+        ToolTip("-- V --", 8, 8)
+        CoordMode("ToolTip", "Screen")
+    } else {
+        ToolTip()
+    }
+}
+; Release sticky-shift (called by any non-movement key).
+ClearSticky() {
+    global stickyShift
+    if (stickyShift)
+        SetSticky(0)
+}
+
 EnterInsert() {
     global normalMode, showInsertBorder, showInsertTooltip, insertTooltipPos
     normalMode := 0
+    ClearSticky()
     if (showInsertBorder)
         ShowBorder()
     if (showInsertTooltip) {
@@ -450,8 +476,9 @@ CapsLock:: {
         ExitInsert()
 }
 
-; --- Escape: sends literal Escape ---
+; --- Escape: sends literal Escape (also releases sticky-shift) ---
 $Escape:: {
+    ClearSticky()
     Send("{Escape}")
 }
 
@@ -463,16 +490,17 @@ $Escape:: {
 ;   pass straight through in BOTH modes. Tab, Enter, arrows, etc. are also unbound.
 #HotIf normalMode
 
-; hjkl movement (plain = move, +Shift = select)
-h::Send("{Left}")
+; hjkl movement (plain = move; while sticky-shift is on, they extend a selection)
+; +Shift always selects regardless of sticky state.
+h::Send(stickyShift ? "+{Left}"  : "{Left}")
 +h::Send("+{Left}")
-l::Send("{Right}")
+l::Send(stickyShift ? "+{Right}" : "{Right}")
 +l::Send("+{Right}")
 j:: {
     if WinActive("ahk_exe ONENOTE.EXE")
-        SendPlay("{Down}")
+        SendPlay(stickyShift ? "+{Down}" : "{Down}")
     else
-        Send("{Down}")
+        Send(stickyShift ? "+{Down}" : "{Down}")
 }
 +j:: {
     if WinActive("ahk_exe ONENOTE.EXE")
@@ -482,9 +510,9 @@ j:: {
 }
 k:: {
     if WinActive("ahk_exe ONENOTE.EXE")
-        SendPlay("{Up}")
+        SendPlay(stickyShift ? "+{Up}" : "{Up}")
     else
-        Send("{Up}")
+        Send(stickyShift ? "+{Up}" : "{Up}")
 }
 +k:: {
     if WinActive("ahk_exe ONENOTE.EXE")
@@ -495,25 +523,30 @@ k:: {
 
 ; Line / document motions
 ; 0 = start of line   |  Shift+0 = highlight to BEGINNING of line
-0::Send("{Home}")
+0::Send(stickyShift ? "+{Home}" : "{Home}")
 +0::Send("+{Home}")
 ; 4 = end of line     |  Shift+4 ($) = highlight to END of line
-4::Send("{End}")
+4::Send(stickyShift ? "+{End}" : "{End}")
 +4::Send("+{End}")
 ; b/w = word left/right (Shift selects)
-b::Send("^{Left}")
+b::Send(stickyShift ? "^+{Left}"  : "^{Left}")
 +b::Send("^+{Left}")
-w::Send("^{Right}")
+w::Send(stickyShift ? "^+{Right}" : "^{Right}")
 +w::Send("^+{Right}")
 ; g = top of document  |  Shift+G = highlight to END of document
-g::Send("^{Home}")
+g::Send(stickyShift ? "^+{Home}" : "^{Home}")
 +g::Send("^+{End}")
 
-; Select current line (v) / whole line incl. wraps (V)
-v::Send("{Home}+{End}")
+; v = sticky-shift toggle (visual/select mode). Movement keys extend the
+; selection while it's on; any non-movement key (or 'v' again) releases it.
+v:: {
+    global stickyShift
+    SetSticky(!stickyShift)
+}
+; Shift+V = select the current line, then enter sticky-shift to extend it
 +v:: {
-    Send("{Shift Up}")
-    Send("{Home}{Home}{Shift Down}{End}{End}{Shift Up}")
+    Send("{Home}+{End}")
+    SetSticky(1)
 }
 
 ; Insert line above (o) / below (Shift+O), then enter insert mode.
@@ -529,22 +562,46 @@ o:: {
 }
 
 ; Undo (u) / Redo (Shift+U)
-u::Send("^z")
-+u::Send("^y")
+u:: {
+    ClearSticky()
+    Send("^z")
+}
++u:: {
+    ClearSticky()
+    Send("^y")
+}
 
 ; Delete char forward (d)
-d::Send("{Delete}")
+d:: {
+    ClearSticky()
+    Send("{Delete}")
+}
 
 ; Delete word forward (f) = Ctrl+Delete
-f::Send("^{Delete}")
+f:: {
+    ClearSticky()
+    Send("^{Delete}")
+}
 
 ; Delete word backward (Backspace) = Ctrl+Backspace in normal mode.
-+Backspace::Send("^{Backspace}")
++Backspace:: {
+    ClearSticky()
+    Send("^{Backspace}")
+}
 
-; Yank/copy (y), cut (x), paste (p)
-y::Send("^c")
-x::Send("^x")
-p::Send("^v")
+; Yank/copy (y), cut (x), paste (p) -- these release sticky-shift too
+y:: {
+    ClearSticky()
+    Send("^c")
+}
+x:: {
+    ClearSticky()
+    Send("^x")
+}
+p:: {
+    ClearSticky()
+    Send("^v")
+}
 
 ; Append: move right then enter insert mode (a)
 a:: {
@@ -552,24 +609,62 @@ a:: {
     EnterInsert()
 }
 
+; --- Pass-through keys that release sticky-shift (Space, Backspace, symbols) ---
+; The ~ prefix lets the key still do its normal thing.
+~$Space::ClearSticky()
+~$Backspace::ClearSticky()
+~$Delete::ClearSticky()
+~$-::ClearSticky()
+~$=::ClearSticky()
+~$[::ClearSticky()
+~$]::ClearSticky()
+~$\::ClearSticky()
+~$`;::ClearSticky()
+~$'::ClearSticky()
+~$,::ClearSticky()
+~$.::ClearSticky()
+~$/::ClearSticky()
+~$`::ClearSticky()
+; Shifted symbols (including shift+number)
+~$+1::ClearSticky()
+~$+2::ClearSticky()
+~$+3::ClearSticky()
+~$+5::ClearSticky()
+~$+6::ClearSticky()
+~$+7::ClearSticky()
+~$+8::ClearSticky()
+~$+9::ClearSticky()
+~$+-::ClearSticky()
+~$+=::ClearSticky()
+~$+[::ClearSticky()
+~$+]::ClearSticky()
+~$+\::ClearSticky()
+~$+`;::ClearSticky()
+~$+'::ClearSticky()
+~$+,::ClearSticky()
+~$+.::ClearSticky()
+~$+/::ClearSticky()
+~$+`::ClearSticky()
+
 ; --- Suppress all other typing in normal mode (real modal behavior) ---
-q::return
-e::return
-r::return
-t::return
-s::return
-z::return
-c::return
-n::return
-m::return
-1::return
-2::return
-3::return
-5::return
-6::return
-7::return
-8::return
-9::return
+; These are no-ops but DO release sticky-shift.
+q::ClearSticky()
+e::ClearSticky()
+r::ClearSticky()
+t::ClearSticky()
+s::ClearSticky()
+z::ClearSticky()
+c::ClearSticky()
+n::ClearSticky()
+m::ClearSticky()
+1::ClearSticky()
+2::ClearSticky()
+3::ClearSticky()
+5::ClearSticky()
+6::ClearSticky()
+7::ClearSticky()
+8::ClearSticky()
+9::ClearSticky()
 
 #HotIf
 
@@ -803,9 +898,9 @@ InitBorder() {
 
     ; Each edge: [x, y, w, h] -> Top, Bottom, Left, Right
     edges := [ [vx,          vy,          vw, t ]
-             , [vx,          vy + vh - t, vw, t ]
-             , [vx,          vy,          t,  vh]
-             , [vx + vw - t, vy,          t,  vh] ]
+             ; , [vx,          vy + vh - t, vw, t ]
+              , [vx + vw - t, vy,          t,  vh]
+             , [vx,          vy,          t,  vh] ]
 
     for e in edges {
         ; -Caption: no title bar   +ToolWindow: no taskbar button
