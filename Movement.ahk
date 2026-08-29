@@ -524,18 +524,14 @@ k:: {
 ; Line / document motions
 ; 0 = start of line   |  Shift+0 = highlight to BEGINNING of line
 0::Send(stickyShift ? "+{Home}" : "{Home}")
-+0::Send("+{Home}")
 ; 4 = end of line     |  Shift+4 ($) = highlight to END of line
 4::Send(stickyShift ? "+{End}" : "{End}")
-+4::Send("+{End}")
 ; b/w = word left/right (Shift selects)
 b::Send(stickyShift ? "^+{Left}"  : "^{Left}")
-+b::Send("^+{Left}")
 w::Send(stickyShift ? "^+{Right}" : "^{Right}")
-+w::Send("^+{Right}")
 ; g = top of document  |  Shift+G = highlight to END of document
 g::Send(stickyShift ? "^+{Home}" : "^{Home}")
-+g::Send("^+{End}")
++g::Send(stickyShift ? "^+{End}" : "^{End}")
 
 ; v = sticky-shift toggle (visual/select mode). Movement keys extend the
 ; selection while it's on; any non-movement key (or 'v' again) releases it.
