@@ -114,7 +114,7 @@ superscripts := 0
 isTransparent := 0
 
 ; Insert-mode screen border settings (2px, blue)
-borderColor := "00FF00"
+borderColor := "FF0000"
 borderThick := 3
 borderGuis  := []
 
@@ -440,8 +440,7 @@ EnterInsert() {
     global normalMode, showInsertBorder, showInsertTooltip, insertTooltipPos
     normalMode := 0
     ClearSticky()
-    if (showInsertBorder)
-        ShowBorder()
+    HideBorder()
     if (showInsertTooltip) {
         if (insertTooltipPos = "top-left") {
             CoordMode("ToolTip", "Window")  ; 0,0 = active window's outer top-left (title bar)
@@ -454,7 +453,8 @@ EnterInsert() {
 ExitInsert() {
     global normalMode
     normalMode := 1
-    HideBorder()
+    if (showInsertBorder)
+        ShowBorder()
     ToolTip()  ; clear the insert tooltip
 }
 
@@ -894,7 +894,7 @@ InitBorder() {
 
     ; Each edge: [x, y, w, h] -> Top, Bottom, Left, Right
     edges := [ [vx,          vy,          vw, t ]
-             ; , [vx,          vy + vh - t, vw, t ]
+              , [vx,          vy + vh - t, vw, t ]
               , [vx + vw - t, vy,          t,  vh]
              , [vx,          vy,          t,  vh] ]
 
