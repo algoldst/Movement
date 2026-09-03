@@ -93,6 +93,12 @@
 ; VIM modal state: 1 = normal mode, 0 = insert mode
 normalMode := 1
 
+; Replace-char state: 1 = 'r' pressed, waiting to capture the next key.
+; While on, the normal-mode hotkey block is disabled so letter keys reach the
+; InputHook instead of being eaten by movement/no-op hotkeys.
+replaceMode := 0
+replaceHook := ""   ; holds the active InputHook so Esc/CapsLock can cancel it
+
 ; Sticky-shift (visual/select) state: 1 = selecting, 0 = normal.
 ; Toggled by 'v' in normal mode. While on, movement keys extend a selection;
 ; pressing any non-movement key (or 'v' again) releases it.
@@ -459,7 +465,7 @@ ExitInsert() {
 }
 
 ; --- Enter insert mode (only active in normal mode) ---
-#HotIf normalMode
+#HotIf normalMode && !replaceMode
 i:: {
     EnterInsert()
 }
@@ -467,8 +473,13 @@ i:: {
 
 ; --- CapsLock: Escape equivalent in normal mode; exit insert mode in insert mode ---
 CapsLock:: {
-    global normalMode
+    global normalMode, replaceMode, replaceHook
     SetCapsLockState("AlwaysOff")
+    if (replaceMode) {          ; cancel a pending 'r' replace
+        if (replaceHook)
+            replaceHook.Stop()
+        return
+    }
     if (normalMode)
         return
         ;Send("{Escape}")
@@ -478,6 +489,12 @@ CapsLock:: {
 
 ; --- Escape: sends literal Escape (also releases sticky-shift) ---
 $Escape:: {
+    global replaceMode, replaceHook
+    if (replaceMode) {          ; cancel a pending 'r' replace
+        if (replaceHook)
+            replaceHook.Stop()
+        return
+    }
     ClearSticky()
     Send("{Escape}")
 }
@@ -488,7 +505,9 @@ $Escape:: {
 ; NOTE ON MODIFIERS:
 ;   Ctrl/Alt/Win combos are never bound below, so hotkeys like ^s, !Tab, #e, etc.
 ;   pass straight through in BOTH modes. Tab, Enter, arrows, etc. are also unbound.
-#HotIf normalMode
+; NOTE: '&& !replaceMode' disables this whole block while 'r' is waiting for its
+;   target key, so lowercase letters reach the InputHook instead of firing here.
+#HotIf normalMode && !replaceMode
 
 ; hjkl movement (plain = move; while sticky-shift is on, they extend a selection)
 ; +Shift always selects regardless of sticky state.
@@ -573,6 +592,26 @@ d:: {
     Send("{Delete}")
 }
 
+; Replace character (r): wait for next key, then delete + type it (Vim 'r').
+; Setting replaceMode disables the normal-mode block above so letter keys reach
+; the InputHook. Escape or CapsLock cancel (their handlers call replaceHook.Stop).
+r:: {
+    global replaceMode, replaceHook
+    ClearSticky()
+    replaceMode := 1
+    replaceHook := InputHook("L1")   ; capture exactly 1 character
+    replaceHook.Start()
+    replaceHook.Wait()
+    reason := replaceHook.EndReason
+    ch := replaceHook.Input
+    replaceMode := 0
+    replaceHook := ""
+    if (reason = "Stopped")          ; cancelled via Esc/CapsLock
+        return
+    if (ch != "")
+        Send("{Delete}" ch)
+}
+
 ; Delete word forward (f) = Ctrl+Delete
 f:: {
     ClearSticky()
@@ -646,7 +685,7 @@ a:: {
 ; These are no-ops but DO release sticky-shift.
 q::ClearSticky()
 e::ClearSticky()
-r::ClearSticky()
+; r is handled above (replace-char command)
 t::ClearSticky()
 s::ClearSticky()
 z::ClearSticky()
