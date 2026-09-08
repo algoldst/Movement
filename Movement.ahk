@@ -966,23 +966,28 @@ InitOverlay() {
     ; +E0x08000000 = WS_EX_NOACTIVATE (never steals focus)
     overlayGui := Gui("+AlwaysOnTop -Caption +ToolWindow +E0x20 +E0x08000000")
     overlayGui.BackColor := overlayColor
+    ; Show at opacity 0 immediately so Windows pre-composites the layered window.
+    ; ShowOverlay / HideOverlay only toggle the transparency value -- the window
+    ; itself stays visible (and click-through) at all times, so there is no
+    ; Show/Hide paint delay when switching modes.
     overlayGui.Show("x" vx " y" vy " w" vw " h" vh " NoActivate")
-    WinSetTransparent(Round(overlayOpacity / 100 * 255), overlayGui)
-    overlayGui.Hide()   ; Start hidden (script begins in insert mode)
+    WinSetTransparent(1, overlayGui)   ; opacity 1/255 ≈ invisible, but keeps DWM pipeline warm
 }
 
 ShowOverlay() {
-    global overlayGui, showNormalOverlay
+    global overlayGui, overlayOpacity, showNormalOverlay
     if (overlayGui = "" || !showNormalOverlay)
         return
-    overlayGui.Show("NoActivate")   ; transparency already set at init, no recalc needed
+    ; Snap opacity up -- the window is already composited, so this is instant.
+    WinSetTransparent(Round(overlayOpacity / 100 * 255), overlayGui)
 }
 
 HideOverlay() {
     global overlayGui
     if (overlayGui = "")
         return
-    overlayGui.Hide()
+    ; Snap back to near-zero opacity to keep DWM pipeline warm for the next show.
+    WinSetTransparent(1, overlayGui)
 }
 
 
