@@ -91,7 +91,7 @@
 ; ####
 
 ; VIM modal state: 1 = normal mode, 0 = insert mode
-normalMode := 1
+normalMode := 0
 
 ; Replace-char state: 1 = 'r' pressed, waiting to capture the next key.
 ; While on, the normal-mode hotkey block is disabled so letter keys reach the
@@ -124,6 +124,12 @@ borderColor := "FF0000"
 borderThick := 3
 borderGuis  := []
 
+; Normal-mode overlay (full-screen semi-transparent red)
+overlayGui     := ""
+showNormalOverlay := 1       ; 1 = show overlay in Normal mode, 0 = disable
+overlayColor   := "4499FF"   ; hex RGB fill color (soft blue)
+overlayOpacity := 18         ; opacity as a percent (0 = invisible, 100 = fully opaque)
+
 ; Obsidian MRU list (most-recently-used window order)
 obsidianMRU := []
 
@@ -132,6 +138,9 @@ SetCapsLockState("AlwaysOff")
 
 ; Build the (hidden) insert-mode border windows once at startup.
 InitBorder()
+
+; Build the (hidden) normal-mode overlay once at startup.
+InitOverlay()
 
 ; Minimize ScreenRotate App at Startup
 if WinWait("Screen Rotate", , 10)   ; Wait up to 10s for the window to appear
@@ -447,6 +456,7 @@ EnterInsert() {
     normalMode := 0
     ClearSticky()
     HideBorder()
+    HideOverlay()
     if (showInsertTooltip) {
         if (insertTooltipPos = "top-left") {
             CoordMode("ToolTip", "Window")  ; 0,0 = active window's outer top-left (title bar)
@@ -459,8 +469,9 @@ EnterInsert() {
 ExitInsert() {
     global normalMode
     normalMode := 1
-    if (showInsertBorder)
-        ShowBorder()
+    ; if (showInsertBorder)
+    ;     ShowBorder()   ; red line border (disabled in favour of overlay)
+    ShowOverlay()
     ToolTip()  ; clear the insert tooltip
 }
 
@@ -917,48 +928,61 @@ EWD_WatchMouse() {
 
 
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-; INSERT-MODE SCREEN BORDER
+; INSERT-MODE SCREEN BORDER  (disabled – replaced by overlay)
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-; Draws a 2px blue border around the entire (virtual) screen while in insert mode.
-; Implemented as four thin, always-on-top, click-through GUI windows created once
-; at startup and simply shown/hidden as the mode changes.
+; The old approach drew four thin red line GUIs around the screen edges.
+; Kept here for reference; ShowBorder/HideBorder are no-ops now.
 
 InitBorder() {
-    global borderGuis, borderColor, borderThick
-    vx := SysGet(76)   ; SM_XVIRTUALSCREEN  (left)
-    vy := SysGet(77)   ; SM_YVIRTUALSCREEN  (top)
-    vw := SysGet(78)   ; SM_CXVIRTUALSCREEN (width, all monitors)
-    vh := SysGet(79)   ; SM_CYVIRTUALSCREEN (height, all monitors)
-    t  := borderThick
-
-    ; Each edge: [x, y, w, h] -> Top, Bottom, Left, Right
-    edges := [ [vx,          vy,          vw, t ]
-              , [vx,          vy + vh - t, vw, t ]
-              , [vx + vw - t, vy,          t,  vh]
-             , [vx,          vy,          t,  vh] ]
-
-    for e in edges {
-        ; -Caption: no title bar   +ToolWindow: no taskbar button
-        ; +E0x20 (WS_EX_TRANSPARENT): click-through
-        ; +E0x08000000 (WS_EX_NOACTIVATE): never steal focus
-        g := Gui("+AlwaysOnTop -Caption +ToolWindow +E0x20 +E0x08000000")
-        g.BackColor := borderColor
-        g.Show("x" e[1] " y" e[2] " w" e[3] " h" e[4] " NoActivate")
-        g.Hide()   ; remembers position/size for later re-show
-        borderGuis.Push(g)
-    }
+    ; (disabled)
 }
 
 ShowBorder() {
-    global borderGuis
-    for g in borderGuis
-        g.Show("NoActivate")
+    ; (disabled – overlay is used instead)
 }
 
 HideBorder() {
-    global borderGuis
-    for g in borderGuis
-        g.Hide()
+    ; (disabled)
+}
+
+
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+; NORMAL-MODE FULL-SCREEN OVERLAY
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+; A single always-on-top, click-through, semi-transparent reddish window that
+; covers the entire virtual desktop while in Vim normal mode.
+; Created once at startup; shown on ExitInsert(), hidden on EnterInsert().
+
+InitOverlay() {
+    global overlayGui, overlayColor, overlayOpacity
+    ; Use a fixed oversized rect instead of querying screen dimensions --
+    ; SysGet can miss monitors in some multi-monitor configs. This covers everything.
+    vx := 1
+    vy := 1
+    vw := 16000
+    vh := 12000
+
+    ; +E0x20  = WS_EX_TRANSPARENT  (click-through)
+    ; +E0x08000000 = WS_EX_NOACTIVATE (never steals focus)
+    overlayGui := Gui("+AlwaysOnTop -Caption +ToolWindow +E0x20 +E0x08000000")
+    overlayGui.BackColor := overlayColor
+    overlayGui.Show("x" vx " y" vy " w" vw " h" vh " NoActivate")
+    WinSetTransparent(Round(overlayOpacity / 100 * 255), overlayGui)
+    overlayGui.Hide()   ; Start hidden (script begins in insert mode)
+}
+
+ShowOverlay() {
+    global overlayGui, showNormalOverlay
+    if (overlayGui = "" || !showNormalOverlay)
+        return
+    overlayGui.Show("NoActivate")   ; transparency already set at init, no recalc needed
+}
+
+HideOverlay() {
+    global overlayGui
+    if (overlayGui = "")
+        return
+    overlayGui.Hide()
 }
 
 
