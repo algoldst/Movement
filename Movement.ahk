@@ -127,7 +127,7 @@ borderGuis  := []
 ; Normal-mode overlay (full-screen semi-transparent red)
 overlayGui     := ""
 showNormalOverlay := 1       ; 1 = show overlay in Normal mode, 0 = disable
-overlayColor   := "4499FF"   ; hex RGB fill color (soft blue)
+overlayColor   := "FF8C00"   ; hex RGB fill color (soft orange)
 overlayOpacity := 18         ; opacity as a percent (0 = invisible, 100 = fully opaque)
 
 ; Obsidian MRU list (most-recently-used window order)
@@ -425,7 +425,7 @@ VB0 B[0] 0 pulse(0 5 1m 100p 100p 2m 4m)
 ; VIM MODAL NAVIGATION
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ; Normal mode is active by default (normalMode = 1).
-; Press 'i' in normal mode to enter insert mode.
+; Press 'i/q' in normal mode to enter insert mode.
 ; Press Escape or CapsLock in insert mode to return to normal mode.
 ; In normal mode, CapsLock also acts as Escape.
 ; Entering insert mode shows a blue border around the screen and/or a tooltip.
@@ -477,7 +477,8 @@ ExitInsert() {
 
 ; --- Enter insert mode (only active in normal mode) ---
 #HotIf normalMode && !replaceMode
-i:: {
+i:: 
+q:: {
     EnterInsert()
 }
 #HotIf
@@ -580,11 +581,11 @@ v:: {
 o:: {
     Send("{Shift Up}")
     Send("{End}{Enter}")
-    EnterInsert()
+    ;EnterInsert()
 }
 +o:: {
     Send("{Home}{Enter}{Up}")
-    EnterInsert()
+    ;EnterInsert()
 }
 
 ; Undo (u) / Redo (Shift+U)
@@ -635,7 +636,11 @@ f:: {
     Send("^{Backspace}")
 }
 
-; Yank/copy (y), cut (x), paste (p) -- these release sticky-shift too
+; Yank/copy (y/c), cut (x), paste (p/s) -- these release sticky-shift too
+c:: {
+    ClearSticky()
+    Send("^c")
+}
 y:: {
     ClearSticky()
     Send("^c")
@@ -645,6 +650,10 @@ x:: {
     Send("^x")
 }
 p:: {
+    ClearSticky()
+    Send("^v")
+}
+s:: {
     ClearSticky()
     Send("^v")
 }
@@ -694,13 +703,10 @@ a:: {
 
 ; --- Suppress all other typing in normal mode (real modal behavior) ---
 ; These are no-ops but DO release sticky-shift.
-q::ClearSticky()
 e::ClearSticky()
 ; r is handled above (replace-char command)
 t::ClearSticky()
-s::ClearSticky()
 z::ClearSticky()
-c::ClearSticky()
 n::ClearSticky()
 m::ClearSticky()
 1::ClearSticky()
