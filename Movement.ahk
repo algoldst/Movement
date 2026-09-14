@@ -180,7 +180,7 @@ LCtrl & RCtrl::
 
 ; Superscripts / Subscripts
 ; Eg. type CapsLock+^ to cycle Super/Sub/off, then "x", "2", etc.
-CapsLock & ^:: {
+~CapsLock & ^:: {
     global superscripts
     ; Cycle through 0 = off, 1 = superscript, 2 = subscript
     superscripts := Mod(superscripts + 1, 3)
@@ -484,7 +484,8 @@ q:: {
 #HotIf
 
 ; --- CapsLock: Escape equivalent in normal mode; exit insert mode in insert mode ---
-CapsLock:: {
+; The * prefix forces the hotkey to fire on key-DOWN rather than waiting for key-up.
+*CapsLock:: {
     global normalMode, replaceMode, replaceHook
     SetCapsLockState("AlwaysOff")
     if (replaceMode) {          ; cancel a pending 'r' replace
