@@ -91,7 +91,7 @@
 ; ####
 
 ; VIM modal state: 1 = normal mode, 0 = insert mode
-normalMode := 0
+normalMode := 1
 
 ; Replace-char state: 1 = 'r' pressed, waiting to capture the next key.
 ; While on, the normal-mode hotkey block is disabled so letter keys reach the
@@ -124,11 +124,11 @@ borderColor := "FF0000"
 borderThick := 3
 borderGuis  := []
 
-; Normal-mode overlay (full-screen semi-transparent red)
-overlayGui     := ""
-showNormalOverlay := 1       ; 1 = show overlay in Normal mode, 0 = disable
-overlayColor   := "FF8C00"   ; hex RGB fill color (soft orange)
-overlayOpacity := 18         ; opacity as a percent (0 = invisible, 100 = fully opaque)
+; Insert-mode overlay (full-screen semi-transparent color)
+overlayGui      := ""
+showInsertOverlay := 1       ; 1 = show overlay in Insert mode, 0 = disable
+overlayColor    := "00FF00"   ; hex RGB fill color (soft orange)
+overlayOpacity  := 8         ; opacity as a percent (0 = invisible, 100 = fully opaque)
 
 ; Obsidian MRU list (most-recently-used window order)
 obsidianMRU := []
@@ -456,7 +456,7 @@ EnterInsert() {
     normalMode := 0
     ClearSticky()
     HideBorder()
-    HideOverlay()
+    ShowOverlay()
     if (showInsertTooltip) {
         if (insertTooltipPos = "top-left") {
             CoordMode("ToolTip", "Window")  ; 0,0 = active window's outer top-left (title bar)
@@ -471,7 +471,7 @@ ExitInsert() {
     normalMode := 1
     ; if (showInsertBorder)
     ;     ShowBorder()   ; red line border (disabled in favour of overlay)
-    ShowOverlay()
+    HideOverlay()
     ToolTip()  ; clear the insert tooltip
 }
 
@@ -982,8 +982,8 @@ InitOverlay() {
 }
 
 ShowOverlay() {
-    global overlayGui, overlayOpacity, showNormalOverlay
-    if (overlayGui = "" || !showNormalOverlay)
+    global overlayGui, overlayOpacity, showInsertOverlay
+    if (overlayGui = "" || !showInsertOverlay)
         return
     ; Snap opacity up -- the window is already composited, so this is instant.
     WinSetTransparent(Round(overlayOpacity / 100 * 255), overlayGui)
