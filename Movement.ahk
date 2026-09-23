@@ -124,11 +124,18 @@ borderColor := "FF0000"
 borderThick := 3
 borderGuis  := []
 
-; Insert-mode overlay (full-screen semi-transparent color)
-overlayGui      := ""
-showInsertOverlay := 1       ; 1 = show overlay in Insert mode, 0 = disable
-overlayColor    := "00FF00"   ; hex RGB fill color (soft orange)
-overlayOpacity  := 8         ; opacity as a percent (0 = invisible, 100 = fully opaque)
+; Accessibility color filter (grayscale) mode indicator.
+; grayscaleOnMode := "normal"  -- grayscale while in normal mode
+; grayscaleOnMode := "insert"  -- grayscale while in insert/typing mode
+; grayscaleOnMode := "none"    -- grayscale not managed by this script
+grayscaleOnMode   := "normal"
+
+; Full-screen semi-transparent color overlay for insert mode.
+; Set showInsertOverlay := 1 to enable; 0 to disable (grayscale or nothing instead).
+showInsertOverlay := 0           ; 1 = show tint overlay while in insert mode
+overlayColor      := "00FF00"    ; hex RGB fill color
+overlayOpacity    := 8           ; opacity as a percent (0 = invisible, 100 = opaque)
+overlayGui        := ""          ; holds the Gui object once built
 
 ; Obsidian MRU list (most-recently-used window order)
 obsidianMRU := []
@@ -139,8 +146,12 @@ SetCapsLockState("AlwaysOff")
 ; Build the (hidden) insert-mode border windows once at startup.
 InitBorder()
 
-; Build the (hidden) normal-mode overlay once at startup.
+; Build the (hidden) insert-mode overlay once at startup.
 InitOverlay()
+
+; Apply correct grayscale state at startup (we start in normal mode).
+if (grayscaleOnMode != "none")
+    SetGrayscale(grayscaleOnMode = "normal")
 
 ; Minimize ScreenRotate App at Startup
 if WinWait("Screen Rotate", , 10)   ; Wait up to 10s for the window to appear
@@ -457,6 +468,8 @@ EnterInsert() {
     ClearSticky()
     HideBorder()
     ShowOverlay()
+    if (grayscaleOnMode != "none")
+        SetGrayscale(grayscaleOnMode = "insert")   ; grayscale on in insert mode?
     if (showInsertTooltip) {
         if (insertTooltipPos = "top-left") {
             CoordMode("ToolTip", "Window")  ; 0,0 = active window's outer top-left (title bar)
@@ -472,6 +485,8 @@ ExitInsert() {
     ; if (showInsertBorder)
     ;     ShowBorder()   ; red line border (disabled in favour of overlay)
     HideOverlay()
+    if (grayscaleOnMode != "none")
+        SetGrayscale(grayscaleOnMode = "normal")   ; grayscale on in normal mode?
     ToolTip()  ; clear the insert tooltip
 }
 
@@ -954,47 +969,66 @@ HideBorder() {
 
 
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-; NORMAL-MODE FULL-SCREEN OVERLAY
+; GRAYSCALE TOGGLE via Win+Ctrl+C shortcut
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-; A single always-on-top, click-through, semi-transparent reddish window that
-; covers the entire virtual desktop while in Vim normal mode.
-; Created once at startup; shown on ExitInsert(), hidden on EnterInsert().
+; SetGrayscale(1) enables the Windows grayscale color filter (normal mode).
+; SetGrayscale(0) disables it (insert / typing mode).
+;
+; Reads HKCU\Software\Microsoft\ColorFiltering\Active (and FilterType) to check
+; the current state, then only sends Win+Ctrl+C if a change is actually needed.
+; FilterType=0 means grayscale; other values mean a different filter is active.
+
+SetGrayscale(enable) {
+    try {
+        current    := RegRead("HKCU\Software\Microsoft\ColorFiltering", "Active")
+        filterType := RegRead("HKCU\Software\Microsoft\ColorFiltering", "FilterType")
+    } catch {
+        current    := -1   ; key missing -- treat as unknown, always send
+        filterType := -1
+    }
+    ; filterType 0 = grayscale; if another filter is selected the key is misleading
+    ; so force a toggle any time the type isn't grayscale AND we want to enable it.
+    alreadyGrayscale := (filterType = 0)
+    needsChange := (enable && (!current || !alreadyGrayscale)) || (!enable && current)
+    if (needsChange)
+        Send("#^c")
+}
+
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+; INSERT-MODE FULL-SCREEN OVERLAY
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+; A single always-on-top, click-through, semi-transparent colored window that
+; covers the entire virtual desktop while in insert mode.
+; Set showInsertOverlay := 1 in the config block above to enable.
+; Created once at startup (InitOverlay); shown/hidden on mode switch.
 
 InitOverlay() {
-    global overlayGui, overlayColor, overlayOpacity
-    ; Use a fixed oversized rect instead of querying screen dimensions --
-    ; SysGet can miss monitors in some multi-monitor configs. This covers everything.
-    vx := 1
-    vy := 1
-    vw := 16000
-    vh := 12000
-
-    ; +E0x20  = WS_EX_TRANSPARENT  (click-through)
-    ; +E0x08000000 = WS_EX_NOACTIVATE (never steals focus)
+    global overlayGui, overlayColor, showInsertOverlay
+    if (!showInsertOverlay)
+        return
+    ; +E0x20        = WS_EX_TRANSPARENT  (click-through)
+    ; +E0x08000000  = WS_EX_NOACTIVATE   (never steals focus)
     overlayGui := Gui("+AlwaysOnTop -Caption +ToolWindow +E0x20 +E0x08000000")
     overlayGui.BackColor := overlayColor
-    ; Show at opacity 0 immediately so Windows pre-composites the layered window.
-    ; ShowOverlay / HideOverlay only toggle the transparency value -- the window
-    ; itself stays visible (and click-through) at all times, so there is no
-    ; Show/Hide paint delay when switching modes.
-    overlayGui.Show("x" vx " y" vy " w" vw " h" vh " NoActivate")
-    WinSetTransparent(1, overlayGui)   ; opacity 1/255 ≈ invisible, but keeps DWM pipeline warm
+    ; Show at near-zero opacity so DWM pre-composites the layered window.
+    ; ShowOverlay/HideOverlay only toggle the transparency value, so there
+    ; is no paint delay when switching modes.
+    overlayGui.Show("x1 y1 w16000 h12000 NoActivate")
+    WinSetTransparent(1, overlayGui)   ; ~invisible but keeps DWM pipeline warm
 }
 
 ShowOverlay() {
     global overlayGui, overlayOpacity, showInsertOverlay
     if (overlayGui = "" || !showInsertOverlay)
         return
-    ; Snap opacity up -- the window is already composited, so this is instant.
     WinSetTransparent(Round(overlayOpacity / 100 * 255), overlayGui)
 }
 
 HideOverlay() {
-    global overlayGui
-    if (overlayGui = "")
+    global overlayGui, showInsertOverlay
+    if (overlayGui = "" || !showInsertOverlay)
         return
-    ; Snap back to near-zero opacity to keep DWM pipeline warm for the next show.
-    WinSetTransparent(1, overlayGui)
+    WinSetTransparent(1, overlayGui)   ; snap back to near-zero, keeps DWM warm
 }
 
 
