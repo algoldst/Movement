@@ -592,15 +592,15 @@ v:: {
     SetSticky(1)
 }
 
-; Insert line above (o) / below (Shift+O), then enter insert mode.
+; Insert line above (Shift+O) / below (o), then enter insert mode.
 ; Shift is released first so {End}{Enter} isn't turned into Shift+End/Shift+Enter.
 o:: {
-    Send("{Shift Up}")
-    Send("{End}{Enter}")
+    Send("{Home}{Enter}{Up}")
     ;EnterInsert()
 }
 +o:: {
-    Send("{Home}{Enter}{Up}")
+    Send("{Shift Up}")
+    Send("{End}{Enter}")
     ;EnterInsert()
 }
 
