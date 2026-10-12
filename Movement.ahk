@@ -493,6 +493,7 @@ ExitInsert() {
 ; --- Enter insert mode (only active in normal mode) ---
 #HotIf normalMode && !replaceMode
 i:: 
++i::
 q:: {
     EnterInsert()
 }
